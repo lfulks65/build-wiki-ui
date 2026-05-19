@@ -3,3 +3,5 @@ declare module '*.tsx' {
   const Component: React.ComponentType<any>
   export default Component
 }
+
+declare module '*.css'

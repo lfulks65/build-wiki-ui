@@ -1,16 +1,10 @@
-import React, { useEffect } from 'react'
+import { useEffect } from 'react'
 import {
   Monitor,
-  Type,
-  Settings as SettingsIcon,
   Keyboard,
   Info,
   LayoutTemplate,
-  WrapText,
-  Save,
-  SpellCheck,
   Vault,
-  Template,
   FileText,
   Clock,
   GitBranch,

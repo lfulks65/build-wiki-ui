@@ -3,51 +3,118 @@ import {
   Command,
   LayoutDashboard,
   List,
-  Moon,
-  PanelLeftClose,
   PanelLeftOpen,
   Search,
   Settings,
   Sun,
 } from 'lucide-react'
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
+import type { LucideIcon } from 'lucide-react'
 import CommandPaletteItem from './CommandPaletteItem'
 import { useCommandPalette } from '../hooks/useCommandPalette'
-import { mockPages } from '../lib/mock-pages'
 
-interface NavCommand {
-  type: 'navigation'
-  icon: typeof Book
+export interface CommandItem {
   title: string
-  path: string
+  action: () => void
+  icon: LucideIcon
   shortcut?: string
-}
-
-interface ActionCommand {
-  type: 'action'
-  icon: typeof Sun
-  title: string
-  action: 'navigate' | 'toggleTheme' | 'toggleSidebar'
+  description?: string
   path?: string
-  shortcut?: string
+  category?: string
+  keywords?: string[]
 }
 
-interface PageCommand {
-  type: 'page'
-  icon: typeof List
-  title: string
-  path: string
-  description: string
-}
-
-type CommandItem = NavCommand | ActionCommand | PageCommand
+const allItems: CommandItem[] = [
+  {
+    title: 'Pages',
+    description: 'Browse all wiki pages',
+    action: () => {
+      window.location.href = '/pages'
+    },
+    icon: LayoutDashboard,
+    shortcut: '⌘P',
+    category: 'Navigation',
+  },
+  {
+    title: 'New Page',
+    description: 'Create a new wiki page',
+    action: () => alert('New page dialog'),
+    icon: Book,
+    shortcut: '⌘N',
+    category: 'Actions',
+  },
+  {
+    title: 'Assets',
+    description: 'Browse and manage assets',
+    action: () => {
+      window.location.href = '/assets'
+    },
+    icon: List,
+    shortcut: '⌘L',
+    category: 'Navigation',
+  },
+  {
+    title: 'Search',
+    description: 'Search across pages',
+    action: () => {
+      window.location.href = '/search'
+    },
+    icon: Search,
+    shortcut: '⌘S',
+    category: 'Navigation',
+  },
+  {
+    title: 'Curator',
+    description: 'Curate content and manage pages',
+    action: () => {
+      window.location.href = '/curator'
+    },
+    icon: LayoutDashboard,
+    category: 'Navigation',
+  },
+  {
+    title: 'Settings',
+    description: 'Configure your wiki preferences',
+    action: () => {
+      window.location.href = '/settings'
+    },
+    icon: Settings,
+    shortcut: '⌘,',
+    category: 'Navigation',
+  },
+  {
+    title: 'Toggle Light Theme',
+    description: 'Switch to light theme',
+    action: () => {
+      document.documentElement.classList.remove('dark')
+      document.documentElement.classList.add('light')
+    },
+    icon: Sun,
+    shortcut: '⌘T',
+    category: 'Theme',
+  },
+  {
+    title: 'Toggle Sidebar',
+    description: 'Toggle the sidebar visibility',
+    action: () => {
+      const sidebar = document.getElementById('wiki-sidebar')
+      if (sidebar) {
+        sidebar.classList.toggle('collapsed')
+      }
+    },
+    icon: PanelLeftOpen,
+    shortcut: '⌘B',
+    category: 'Layout',
+  },
+]
 
 function matchesQuery(item: CommandItem, query: string): boolean {
   const q = query.toLowerCase()
   return (
     item.title.toLowerCase().includes(q) ||
-    'path' in item && item.path.toLowerCase().includes(q) ||
-    'description' in item && item.description.toLowerCase().includes(q)
+    (item.path !== undefined && item.path.toLowerCase().includes(q)) ||
+    (item.description !== undefined && item.description.toLowerCase().includes(q)) ||
+    (item.keywords !== undefined && item.keywords.some(k => k.toLowerCase().includes(q)))
   )
 }
 
@@ -56,206 +123,132 @@ export default function CommandPalette() {
   const [query, setQuery] = useState('')
   const [selectedIndex, setSelectedIndex] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
-  const [theme, setTheme] = useState<'light' | 'dark' | 'system'>('system')
-
-  const allCommands = useMemo<CommandItem[]>(() => {
-    const nav: NavCommand[] = [
-      { type: 'navigation', icon: LayoutDashboard, title: 'Go to Pages', path: '/pages', shortcut: '⌘P' },
-      { type: 'navigation', icon: Book, title: 'Go to Assets', path: '/assets', shortcut: '⌘A' },
-      { type: 'navigation', icon: Search, title: 'Go to Search', path: '/search', shortcut: '⌘S' },
-      { type: 'navigation', icon: LayoutDashboard, title: 'Go to Curator', path: '/curator', shortcut: '⌘C' },
-      { type: 'navigation', icon: Settings, title: 'Go to Settings', path: '/settings', shortcut: '⌘,' },
-    ]
-
-    const actions: ActionCommand[] = [
-      { type: 'action', icon: Book, title: 'New Page', action: 'navigate', path: '/pages/new', shortcut: '⌘N' },
-      { type: 'action', icon: Sun, title: 'Toggle Theme', action: 'toggleTheme', shortcut: '⌘T' },
-      { type: 'action', icon: PanelLeftOpen, title: 'Toggle Sidebar', action: 'toggleSidebar', shortcut: '⌘B' },
-    ]
-
-    const pages: PageCommand[] = mockPages.map(p => ({
-      type: 'page' as const,
-      icon: List,
-      title: p.title,
-      path: `/pages/${p.slug}`,
-      description: p.description,
-    }))
-
-    return [...nav, ...actions, ...pages]
-  }, [])
-
-  const filteredCommands = useMemo(() => {
-    if (!query) return allCommands
-    return allCommands.filter(cmd => matchesQuery(cmd, query))
-  }, [allCommands, query])
-
-  const groupedCommands = useMemo(() => {
-    const sections: { name: string; items: CommandItem[] }[] = []
-
-    const navItems = filteredCommands.filter(c => c.type === 'navigation')
-    const actionItems = filteredCommands.filter(c => c.type === 'action')
-    const pageItems = filteredCommands.filter(c => c.type === 'page')
-
-    if (navItems.length) sections.push({ name: 'Navigation', items: navItems })
-    if (actionItems.length) sections.push({ name: 'Actions', items: actionItems })
-    if (pageItems.length) sections.push({ name: 'Pages', items: pageItems })
-
-    return sections
-  }, [filteredCommands])
-
-  const flatItems = useMemo(() =>
-    groupedCommands.flatMap(s => s.items),
-    [groupedCommands],
-  )
 
   useEffect(() => {
-    if (flatItems.length > 0 && selectedIndex >= flatItems.length) {
-      setSelectedIndex(0)
-    }
-  }, [flatItems.length, selectedIndex])
-
-  useEffect(() => {
-    if (isOpen) {
+    if (isOpen && inputRef.current) {
       setQuery('')
       setSelectedIndex(0)
-      requestAnimationFrame(() => inputRef.current?.focus())
+      setTimeout(() => inputRef.current?.focus(), 10)
     }
   }, [isOpen])
 
-  const handleSelect = useCallback((cmd: CommandItem) => {
-    close()
-    if (cmd.type === 'action') {
-      if (cmd.action === 'navigate' && cmd.path) {
-        window.location.href = cmd.path
-      } else if (cmd.action === 'toggleTheme') {
-        const next = theme === 'system' ? 'dark' : theme === 'dark' ? 'light' : 'system'
-        setTheme(next)
-        if (next === 'dark') {
-          document.documentElement.classList.add('dark')
-        } else if (next === 'light') {
-          document.documentElement.classList.remove('dark')
-        }
-        // system: just remove class, let media query handle
-      } else if (cmd.action === 'toggleSidebar') {
-        const sidebar = document.getElementById('wiki-sidebar')
-        if (sidebar) {
-          sidebar.classList.toggle('hidden')
-        }
-      }
-    } else if ('path' in cmd && cmd.path) {
-      window.location.href = cmd.path
-    }
-  }, [close, theme])
-
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    switch (e.key) {
-      case 'ArrowDown': {
-        e.preventDefault()
-        if (flatItems.length > 0) {
-          setSelectedIndex(prev => (prev + 1) % flatItems.length)
-        }
-        break
-      }
-      case 'ArrowUp': {
-        e.preventDefault()
-        if (flatItems.length > 0) {
-          setSelectedIndex(prev => (prev - 1 + flatItems.length) % flatItems.length)
-        }
-        break
-      }
-      case 'Enter': {
-        e.preventDefault()
-        if (flatItems.length > 0 && flatItems[selectedIndex]) {
-          handleSelect(flatItems[selectedIndex])
-        }
-        break
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        close()
       }
     }
-  }, [flatItems, selectedIndex, handleSelect])
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [close])
 
-  const getShortcut = (cmd: CommandItem): string | undefined => {
-    return 'shortcut' in cmd ? cmd.shortcut : undefined
-  }
+  const filtered = query.length === 0
+    ? allItems
+    : allItems.filter(item => matchesQuery(item, query))
 
-  const getSubtitle = (cmd: CommandItem): string | undefined => {
-    if ('description' in cmd && cmd.type === 'page') return cmd.path
-    if ('path' in cmd) return cmd.path
-    return undefined
-  }
+  const handleSelect = useCallback(
+    (item: CommandItem) => {
+      item.action()
+      close()
+    },
+    [close],
+  )
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      switch (e.key) {
+        case 'ArrowDown':
+          e.preventDefault()
+          setSelectedIndex(prev => (prev + 1) % filtered.length)
+          break
+        case 'ArrowUp':
+          e.preventDefault()
+          setSelectedIndex(prev => (prev - 1 + filtered.length) % filtered.length)
+          break
+        case 'Enter':
+          e.preventDefault()
+          if (filtered[selectedIndex]) {
+            handleSelect(filtered[selectedIndex])
+          }
+          break
+        case 'Escape':
+          e.preventDefault()
+          close()
+          break
+      }
+    },
+    [filtered, selectedIndex, handleSelect, close],
+  )
 
   if (!isOpen) return null
 
   return (
-    <div className="command-palette-backdrop" onClick={close}>
+    <div className="command-palette-backdrop">
       <div
-        className="animate-in w-full max-w-lg mx-4 mt-16 overflow-hidden rounded-xl bg-white dark:bg-gray-900 shadow-2xl ring-1 ring-black/5"
-        onClick={(e) => e.stopPropagation()}
-        onKeyDown={handleKeyDown}
+        className="animate-in w-full max-w-2xl bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-xl overflow-hidden"
         role="dialog"
-        aria-modal="true"
         aria-label="Command Palette"
       >
-        {/* Search Input */}
-        <div className="flex items-center gap-3 px-4 border-b border-gray-100 dark:border-gray-800">
-          <Search className="shrink-0 text-gray-400 dark:text-gray-500" size={20} />
+        {/* Input */}
+        <div className="flex items-center gap-3 px-4 border-b border-gray-200 dark:border-gray-800">
+          <Command className="text-gray-400" size={18} />
           <input
             ref={inputRef}
             type="text"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={e => {
+              setQuery(e.target.value)
+              setSelectedIndex(0)
+            }}
+            onKeyDown={handleKeyDown}
             placeholder="Type a command or search…"
-            className="flex-1 py-4 text-lg bg-transparent outline-none text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
-            autoFocus
+            className="flex-1 py-3 text-sm bg-transparent outline-none text-gray-900 dark:text-gray-100 placeholder-gray-400"
           />
-          <kbd className="shrink-0 text-xs font-mono text-gray-400 dark:text-gray-600 border border-gray-200 dark:border-gray-700 rounded px-1.5 py-0.5">ESC</kbd>
+          <kbd className="text-[10px] font-mono text-gray-400 border border-gray-200 dark:border-gray-700 rounded px-1.5 py-0.5">
+            Esc
+          </kbd>
         </div>
 
         {/* Results */}
-        <div className="max-h-80 overflow-y-auto py-1">
-          {groupedCommands.length === 0 ? (
-            <div className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
-              <Command size={24} className="mx-auto mb-2 opacity-50" />
-              <p className="text-sm">No results for &ldquo;{query}&rdquo;</p>
+        <div className="max-h-80 overflow-y-auto p-2">
+          {filtered.length === 0 ? (
+            <div className="py-8 text-center text-sm text-gray-500 dark:text-gray-400">
+              No results found
             </div>
           ) : (
-            groupedCommands.map((section) => (
-              <div key={section.name}>
-                <div className="px-4 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
-                  {section.name}
-                </div>
-                {section.items.map((item) => {
-                  const globalIdx = flatItems.indexOf(item)
-                  return (
-                    <CommandPaletteItem
-                      key={globalIdx}
-                      icon={item.icon}
-                      title={item.title}
-                      subtitle={getSubtitle(item)}
-                      shortcut={getShortcut(item)}
-                      active={globalIdx === selectedIndex}
-                      onClick={() => handleSelect(item)}
-                      query={query}
-                    />
-                  )
-                })}
-              </div>
+            filtered.map((item, index) => (
+              <CommandPaletteItem
+                key={item.title}
+                icon={item.icon}
+                title={item.title}
+                subtitle={item.description}
+                shortcut={item.shortcut}
+                active={index === selectedIndex}
+                onClick={() => handleSelect(item)}
+                query={query}
+              />
             ))
           )}
         </div>
 
         {/* Footer */}
-        <div className="px-4 py-2 border-t border-gray-100 dark:border-gray-800 flex items-center gap-4 text-xs text-gray-400 dark:text-gray-500">
-          <span className="flex items-center gap-1">
-            <kbd className="border border-gray-200 dark:border-gray-700 rounded px-1 py-0.5 mr-1">↑↓</kbd>
-            navigate
-          </span>
-          <span className="flex items-center gap-1">
-            <kbd className="border border-gray-200 dark:border-gray-700 rounded px-1 py-0.5">↵</kbd>
-            select
-          </span>
-          <span className="flex items-center gap-1">
-            <kbd className="border border-gray-200 dark:border-gray-700 rounded px-1 py-0.5">ESC</kbd>
-            close
+        <div className="px-4 py-2 border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+          <div className="flex items-center gap-3">
+            <span className="flex items-center gap-1">
+              <kbd className="px-1 py-0.5 rounded border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300">
+                ↑↓
+              </kbd>
+              Navigate
+            </span>
+            <span className="flex items-center gap-1">
+              <kbd className="px-1 py-0.5 rounded border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300">
+                ↵
+              </kbd>
+              Select
+            </span>
+          </div>
+          <span>
+            {filtered.length} result{filtered.length !== 1 ? 's' : ''}
           </span>
         </div>
       </div>

@@ -1,20 +1,16 @@
-import React from 'react'
-
-export interface ToggleSwitchProps {
-  checked: boolean
-  onChange: (checked: boolean) => void
-  label: string
-  description?: string
-  disabled?: boolean
-}
-
 export default function ToggleSwitch({
   checked,
   onChange,
   label,
   description,
   disabled = false,
-}: ToggleSwitchProps) {
+}: {
+  checked: boolean
+  onChange: (checked: boolean) => void
+  label: string
+  description?: string
+  disabled?: boolean
+}) {
   return (
     <div
       className={`flex items-center justify-between gap-4 py-3 ${
