@@ -98,7 +98,7 @@ export function listPages(): Promise<PageSummary[]> {
 
 export function readPage(path: string): Promise<string> {
   return delay().then((): string => {
-    const page = PAGES.find((p) => p.path === path);
+    const page = PAGES.find((p) => p.path === path || p.path === path + ".md");
     if (!page) return `# Not Found\n\nPage "${path}" does not exist.`;
     return `# ${page.title}\n\nThis is mock content for **${page.title}**.\n\nLast modified: ${page.modified}\n\n<!-- real content served by Tauri backend when running in-app -->\n`;
   });
