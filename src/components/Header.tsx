@@ -34,7 +34,7 @@ export function Header({ title }: HeaderProps): React.ReactElement {
   const displayTitle = title ?? pageTitle(pathname);
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 flex-col border-b border-gray-200 bg-white/80 px-4 backdrop-blur dark:border-gray-800 dark:bg-gray-950/80">
+    <header className="no-print sticky top-0 z-30 flex h-16 flex-col border-b border-gray-200 bg-white/80 px-4 backdrop-blur dark:border-gray-800 dark:bg-gray-950/80">
       {/* ── Top row: page title + controls ── */}
       <div className="flex min-w-0 items-center gap-3">
         {/* Left: page title */}

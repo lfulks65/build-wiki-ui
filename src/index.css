@@ -1,3 +1,4 @@
+@import './styles/print.css';
 @import './styles/markdown.css';
 
 @tailwind base;

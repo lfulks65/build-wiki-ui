@@ -77,7 +77,7 @@ export function Sidebar({ navItems = defaultNavItems }: SidebarProps): React.Rea
 
       {/* ── Sidebar ── */}
       <aside
-        className={`
+        className={`no-print
           fixed inset-y-0 left-0 z-50 flex flex-col bg-white text-gray-900
           border-r border-gray-200 dark:bg-gray-900 dark:text-gray-100 dark:border-gray-800
           transition-all duration-300 ease-in-out
