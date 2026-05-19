@@ -483,16 +483,6 @@
     text-align: center;
     color: var(--color-text-muted);
   }
-
-  /* Icon float animation for EmptyState */
-  @keyframes icon-float {
-    0%, 100% { transform: translateY(0); }
-    50%      { transform: translateY(-6px); }
-  }
-
-  .animate-icon-float {
-    animation: icon-float 3s ease-in-out infinite;
-  }
 }
 
 /* Lightbox open animation */
