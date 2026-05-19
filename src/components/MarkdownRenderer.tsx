@@ -1,7 +1,7 @@
 import { useRef, useEffect, useCallback } from 'react';
 import { marked } from 'marked';
+import hljs from 'highlight.js';
 import CopyButton from './CopyButton';
-import type { Renderer } from 'marked';
 
 interface MarkdownRendererProps {
   content: string;
@@ -81,133 +81,26 @@ function extractFrontmatter(content: string): {
   }
 }
 
-/**
- * Simple syntax highlighter for common language patterns.
- * Returns HTML with token classes applied.
- */
-function highlightCode(code: string, lang: string): string {
-  // Escape HTML entities
-  let escaped = code
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
-
-  // Basic keyword patterns - order matters!
-  const patterns = [
-    // Strings (single and double quoted)
-    { regex: /(["'])(?:(?!\1)[^\\]|\\.)*\1/g, token: 'string' },
-    // Numbers
-    { regex: /\b\d+(?:\.\d+)?\b/g, token: 'number' },
-    // Comments (// and /* */)
-    { regex: /(\/\/.*$)/gm, token: 'comment' },
-    { regex: /(\/\*[\s\S]*?\*\/)/g, token: 'comment' },
-    // Keywords (common JS/TS/Python/Go/etc)
-    { regex: /\b(const|let|var|function|return|if|else|for|while|do|switch|case|break|continue|new|this|class|extends|import|export|from|default|async|await|try|catch|finally|throw|typeof|instanceof|in|of|void|delete|yield|static|get|set)\b/g, token: 'keyword' },
-    // Booleans and null
-    { regex: /\b(true|false|null|undefined|NaN|Infinity)\b/g, token: 'boolean' },
-    // Function calls
-    { regex: /\b([a-zA-Z_$][\w$]*)\s*(?=\()/g, token: 'function' },
-    // Tags (for HTML)
-    { regex: /(&lt;\/?)([\w-]+)/g, token: 'tag' },
-  ];
-
-  const tokens: Array<{ start: number; end: number; token: string; text: string }> = [];
-
-  patterns.forEach(({ regex, token }) => {
-    const re = new RegExp(regex.source, regex.flags);
-    let match: RegExpExecArray | null;
-    while ((match = re.exec(escaped)) !== null) {
-      // For tag pattern, only highlight the tag name part
-      let matchText = match[2];
-      if (token === 'tag' && match[1]) {
-        // Replace just the tag name
-        const before = escaped.slice(0, match.index + match[1].length);
-        const after = escaped.slice(match.index + match[0].length);
-        const tagIdx = tokens.findIndex(t => t.start <= match.index + match[1].length && t.end >= match.index + match[1].length);
-        if (tagIdx === -1) {
-          tokens.push({
-            start: match.index + match[1].length,
-            end: match.index + match[0].length,
-            token,
-            text: match[2],
-          });
-        }
-        continue;
-      }
-      tokens.push({
-        start: match.index,
-        end: match.index + match[0].length,
-        token,
-        text: match[0],
-      });
-    }
-  });
-
-  // Remove overlapping tokens, keeping longest
-  tokens.sort((a, b) => a.start - b.start || (b.end - b.start) - (a.end - a.start));
-
-  const filtered: typeof tokens = [];
-  let lastEnd = 0;
-  for (const t of tokens) {
-    if (t.start >= lastEnd) {
-      filtered.push(t);
-      lastEnd = t.end;
+// Syntax highlighting function using highlight.js
+function highlightWithHljs(code: string, lang: string): string {
+  if (lang && hljs.getLanguage(lang)) {
+    try {
+      return hljs.highlight(code, { language: lang }).value;
+    } catch (_e) {
+      // fall through to auto-detect
     }
   }
-
-  // Build result
-  let result = '';
-  let pos = 0;
-  for (const t of filtered) {
-    result += escaped.slice(pos, t.start);
-    result += `<span class="token ${t.token}">${t.text}</span>`;
-    pos = t.end;
+  try {
+    return hljs.highlightAuto(code).value;
+  } catch (_e) {
+    return code;
   }
-  result += escaped.slice(pos);
-
-  return result;
 }
 
-// Configure marked with custom renderer
-const renderer = new (marked.Renderer as any)();
-
-// Override link renderer to add target="_blank" for external links
-renderer.link = ((href: string, title: string, text: string) => {
-  const isExternal = href.startsWith('http://') || href.startsWith('https://');
-  let html = `<a href="${href}"`;
-  if (isExternal) {
-    html += ` target="_blank" rel="noopener noreferrer"`;
-  }
-  if (title) {
-    html += ` title="${title}"`;
-  }
-  html += `>${text}</a>`;
-  return html;
-}) as any;
-
-// Override code block renderer to add copy button wrapper
-renderer.codeblock = ((text: string, lang: string) => {
-  const highlighted = lang
-    ? highlightCode(text, lang)
-    : text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-
-  return `
-    <div class="code-block-wrapper">
-      <button
-        class="copy-code-btn"
-        data-code="${encodeURIComponent(text)}"
-        aria-label="Copy code"
-        title="Copy code"
-      >
-        Copy
-      </button>
-      <pre><code class="language-${lang || 'text'}">${highlighted}</code></pre>
-    </div>
-  `;
-}) as any;
-
+// Configure marked globally once
 marked.setOptions({
-  renderer,
+  highlight: highlightWithHljs,
+  langPrefix: 'hljs language-',
   gfm: true,
 });
 
@@ -222,44 +115,78 @@ export default function MarkdownRenderer({ content, className = '' }: MarkdownRe
 
   const { frontmatter, html } = renderContent();
 
-  // Attach copy buttons after render
+  // Post-process: add data-language attributes and copy buttons
   useEffect(() => {
     const container = contentRef.current;
     if (!container) return;
 
-    // Set up copy button event listeners
-    const setupCopyButtons = () => {
-      container.querySelectorAll('.copy-code-btn').forEach((btn) => {
-        const encodedCode = btn.getAttribute('data-code');
-        if (!encodedCode) return;
+    const codeElements = container.querySelectorAll<HTMLCodeElement>('pre code[class*="hljs language-"]');
 
-        btn.addEventListener('click', async () => {
-          try {
-            const decoded = decodeURIComponent(encodedCode);
-            await navigator.clipboard.writeText(decoded);
-            btn.textContent = 'Copied!';
-            btn.classList.add('text-green-400');
-            setTimeout(() => {
-              btn.textContent = 'Copy';
-              btn.classList.remove('text-green-400');
-            }, 2000);
-          } catch {
-            // Fallback
-            const textArea = document.createElement('textarea');
-            textArea.value = decodeURIComponent(encodedCode);
-            document.body.appendChild(textArea);
-            textArea.select();
-            document.execCommand('copy');
-            document.body.removeChild(textArea);
-            btn.textContent = 'Copied!';
-            setTimeout(() => { btn.textContent = 'Copy'; }, 2000);
-          }
-        });
+    codeElements.forEach((code) => {
+      const classes = code.className.split(' ');
+      const langClass = classes.find((c) => c.startsWith('hljs language-'));
+      if (!langClass) return;
+
+      const lang = langClass.replace('hljs language-', '');
+      const pre = code.parentElement;
+      if (!pre || pre.tagName !== 'PRE') return;
+
+      // Add data-language attribute to <pre> for CSS language badge
+      pre.setAttribute('data-language', lang);
+
+      // Get raw code text for copy button
+      const rawCode = code.textContent || '';
+
+      // Skip if button already exists (e.g., during re-render)
+      if (pre.querySelector('.copy-code-btn')) return;
+
+      // Create copy button
+      const btn = document.createElement('button');
+      btn.className = 'copy-code-btn';
+      btn.setAttribute('data-code', encodeURIComponent(rawCode));
+      btn.setAttribute('aria-label', 'Copy code');
+      btn.setAttribute('title', 'Copy code');
+      btn.textContent = 'Copy';
+      btn.style.cssText = 'position:absolute;top:0.5rem;right:0.5rem;padding:0.25rem 0.5rem;font-size:0.75rem;border-radius:0.25rem;background:rgba(0,0,0,0.4);color:#e5e7eb;border:1px solid rgba(255,255,255,0.1);cursor:pointer;z-index:10;transition:all 0.15s;';
+
+      // Wrap pre for relative positioning
+      const wrapperEl = document.createElement('div');
+      wrapperEl.className = 'code-block-wrapper';
+      wrapperEl.style.position = 'relative';
+      pre.parentNode?.insertBefore(wrapperEl, pre);
+      wrapperEl.appendChild(pre);
+
+      pre.appendChild(btn);
+    });
+
+    // Set up click handlers for copy buttons
+    container.querySelectorAll<HTMLButtonElement>('.copy-code-btn').forEach((btn) => {
+      const encodedCode = btn.getAttribute('data-code');
+      if (!encodedCode) return;
+
+      btn.addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(decodeURIComponent(encodedCode));
+          btn.textContent = 'Copied!';
+          btn.style.color = '#4ade80';
+          setTimeout(() => {
+            btn.textContent = 'Copy';
+            btn.style.color = '#e5e7eb';
+          }, 2000);
+        } catch {
+          // Fallback
+          const textArea = document.createElement('textarea');
+          textArea.value = decodeURIComponent(encodedCode);
+          document.body.appendChild(textArea);
+          textArea.select();
+          document.execCommand('copy');
+          document.body.removeChild(textArea);
+          btn.textContent = 'Copied!';
+          setTimeout(() => { btn.textContent = 'Copy'; }, 2000);
+        }
       });
-    };
-
-    setupCopyButtons();
-  }, [html]);
+    });
+  });
 
   return (
     <div className={className}>
