@@ -1,6 +1,10 @@
-import { useState, useEffect } from 'react';
-import { Star } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Star, Edit3 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useFavorites } from '@/hooks/useFavorites';
+import { useVersionHistory } from '@/hooks/useVersionHistory';
+import { RevisionBadge } from '@/components/RevisionBadge';
+import { VersionHistory } from '@/components/VersionHistory';
 import MarkdownRenderer from './MarkdownRenderer';
 
 /* ── Types ─────────────────────────────────────────────────────────── */
@@ -196,10 +200,11 @@ function EmptyState() {
 }
 
 /**
- * Page title header with favorite toggle.
+ * Page title header with favorite toggle and version history badge.
  */
 function PageHeader({ title, slug }: { title: string; slug?: string }) {
   const { isFavorite, toggleFavorite } = useFavorites();
+  const navigate = useNavigate();
   const [justToggled, setJustToggled] = useState(false);
   const favored = slug ? isFavorite(slug) : false;
 
@@ -212,9 +217,21 @@ function PageHeader({ title, slug }: { title: string; slug?: string }) {
 
   return (
     <div className="mb-4 flex items-start justify-between border-b border-gray-200 pb-4 dark:border-gray-800">
-      <h2 className="text-lg font-bold tracking-tight text-gray-900 dark:text-gray-100">
-        {title}
-      </h2>
+      <div className="flex flex-col gap-2">
+        <h2 className="text-lg font-bold tracking-tight text-gray-900 dark:text-gray-100">
+          {title}
+        </h2>
+        {/* Edit link next to title */}
+        {slug && (
+          <a
+            href={`/pages/${slug}/edit`}
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300"
+          >
+            <Edit3 size={12} />
+            Edit page
+          </a>
+        )}
+      </div>
       {slug && (
         <button
           onClick={handleClick}
@@ -261,6 +278,16 @@ export default function PageViewer({ pageTitle, pageSlug }: PageViewerProps) {
     error: null,
   });
 
+  // Version history hook
+  const {
+    getRevisions,
+    getRevisionCount,
+    getLastSaved,
+    restoreRevision,
+  } = useVersionHistory();
+
+  const [historyOpen, setHistoryOpen] = useState(false);
+
   const fetchContent = () => {
     setPageContent({ content: '', loading: true, error: null });
 
@@ -285,6 +312,26 @@ export default function PageViewer({ pageTitle, pageSlug }: PageViewerProps) {
     fetchContent();
   }, [pageTitle]);
 
+  // Handle restore from history
+  const handleRestore = useCallback(
+    (restoredContent: string, _message: string) => {
+      // In a real app this would write back to the API
+      // For now, just replace the content in the viewer
+      setPageContent((prev) => ({
+        ...prev,
+        content: restoredContent,
+        loading: false,
+      }));
+    },
+    [],
+  );
+
+  // Revision data for badge and history panel
+  const slug = pageSlug || '';
+  const revisionCount = getRevisionCount(slug);
+  const lastSaved = getLastSaved(slug);
+  const revisions = getRevisions(slug);
+
   if (pageContent.loading) {
     return <LoadingSkeleton />;
   }
@@ -300,7 +347,32 @@ export default function PageViewer({ pageTitle, pageSlug }: PageViewerProps) {
   return (
     <div className="w-full">
       <PageHeader title={pageTitle} slug={pageSlug} />
+
+      {/* Version history badge in metadata area */}
+      {revisionCount > 0 && (
+        <div className="mb-3">
+          <RevisionBadge
+            revisionCount={revisionCount}
+            lastSaved={lastSaved}
+            onClick={() => setHistoryOpen(true)}
+          />
+        </div>
+      )}
+
       <MarkdownRenderer content={pageContent.content} className="w-full" />
+
+      {/* Version History Panel */}
+      {historyOpen && (
+        <VersionHistory
+          pageSlug={slug}
+          currentContent={pageContent.content}
+          revisions={revisions}
+          hasRevisions={revisionCount > 0}
+          lastSaved={lastSaved}
+          onClose={() => setHistoryOpen(false)}
+          onRestore={handleRestore}
+        />
+      )}
     </div>
   );
 }
