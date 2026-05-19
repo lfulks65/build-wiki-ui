@@ -3,6 +3,7 @@ import { Printer } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { usePrintStyles } from "@/hooks/usePrintStyles";
+import { useScrollPosition } from "@/hooks/useScrollPosition";
 
 /* ── Page title mapping ───────────────────────────────────────────── */
 
@@ -54,35 +55,43 @@ function PrintPreviewButton(): React.ReactElement {
 export function Header({ title }: HeaderProps): React.ReactElement {
   const { pathname } = useLocation();
   const displayTitle = title ?? pageTitle(pathname);
+  const scroll = useScrollPosition();
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 flex-col border-b border-gray-200 bg-white/80 px-4 backdrop-blur dark:border-gray-800 dark:bg-gray-950/80">
-      {/* ── Top row: page title + controls ── */}
-      <div className="flex min-w-0 items-center gap-3">
-        {/* Left: page title */}
-        <h1 className="truncate text-lg font-semibold tracking-tight text-gray-900 dark:text-gray-100">
+    <header className={`
+      sticky top-0 z-30 flex flex-col border-b transition-all duration-300 ease-in-out
+      ${scroll.isScrolled
+        ? "h-12 border-gray-200/80 bg-white/90 backdrop-blur-md dark:border-gray-800/80 dark:bg-gray-950/90"
+        : "h-16 border-transparent bg-white/70 backdrop-blur-sm dark:bg-gray-950/70"}
+    `}>
+      {/* Top row: page title + controls */}
+      <div className={`flex items-center gap-3 px-4 ${scroll.isScrolled ? "h-12" : "h-9"}`}>
+        <h1 className={`
+          truncate font-semibold tracking-tight text-gray-900 dark:text-gray-100 transition-all duration-300
+          ${scroll.isScrolled ? "text-base" : "text-lg"}
+        `}>
           {displayTitle}
         </h1>
 
         {/* Spacer */}
         <div className="flex-1" />
 
-        {/* Right: theme toggle + print + Tauri controls */}
+        {/* Controls */}
         <div className="flex items-center gap-2">
           <ThemeToggle />
           <PrintPreviewButton />
-
-          {/* Tauri window controls spacer — visible only in Tauri */}
-          <span
-            className="hidden h-5 w-14 shrink-0 lg:inline"
-            data-tauri-drag-region
-          />
+          <span className="hidden h-5 w-14 shrink-0 lg:inline" data-tauri-drag-region />
         </div>
       </div>
 
-      {/* ── Bottom row: breadcrumb trail ── */}
-      <div className="mt-1">
-        <Breadcrumbs />
+      {/* Breadcrumbs — visible at top, hidden when scrolled */}
+      <div className={`
+        overflow-hidden transition-all duration-300 ease-in-out
+        ${scroll.isScrolled ? "max-h-0 opacity-0" : "max-h-6 opacity-100"}
+      `}>
+        <div className="px-4 pb-1">
+          <Breadcrumbs />
+        </div>
       </div>
     </header>
   );
