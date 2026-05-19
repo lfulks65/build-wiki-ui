@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import MarkdownRenderer from './MarkdownRenderer';
+import ReadingTime from './ReadingTime';
+import { calculateReadingTime } from '../utils/readingTime';
 
 interface PageViewerProps {
   pageTitle: string;
@@ -9,6 +11,7 @@ interface PageContent {
   content: string;
   loading: boolean;
   error: string | null;
+  isEmpty?: boolean;
 }
 
 /**
@@ -237,8 +240,15 @@ export default function PageViewer({ pageTitle }: PageViewerProps) {
     return <EmptyState />;
   }
 
+  const readingTime = calculateReadingTime(pageContent.content);
+
   return (
     <div className="w-full">
+      {readingTime > 0 && (
+        <div className="flex items-center gap-3 mb-4">
+          <ReadingTime minutes={readingTime} size="sm" />
+        </div>
+      )}
       <MarkdownRenderer content={pageContent.content} className="w-full" />
     </div>
   );
