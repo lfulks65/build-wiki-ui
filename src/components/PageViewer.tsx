@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import ReadingProgress from './ReadingProgress';
 import MarkdownRenderer from './MarkdownRenderer';
 
 interface PageViewerProps {
@@ -201,6 +202,8 @@ export default function PageViewer({ pageTitle }: PageViewerProps) {
     error: null,
   });
 
+  const contentRef = useRef<HTMLDivElement>(null);
+
   const fetchContent = () => {
     setPageContent({ content: '', loading: true, error: null });
 
@@ -239,7 +242,10 @@ export default function PageViewer({ pageTitle }: PageViewerProps) {
 
   return (
     <div className="w-full">
-      <MarkdownRenderer content={pageContent.content} className="w-full" />
+      <ReadingProgress targetRef={contentRef} />
+      <div ref={contentRef}>
+        <MarkdownRenderer content={pageContent.content} className="w-full" />
+      </div>
     </div>
   );
 }

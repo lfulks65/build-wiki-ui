@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Outlet } from "react-router-dom";
 import { Sidebar, type NavItem } from "@/components/Sidebar";
 import { Header } from "@/components/Header";
+import ScrollToTop from "@/components/ScrollToTop";
 
 export interface LayoutProps {
   navItems?: NavItem[];
@@ -26,6 +27,9 @@ export function Layout({ navItems, children }: LayoutProps): React.ReactElement 
           </div>
         </main>
       </div>
+
+      {/* ── Global scroll-to-top FAB ── */}
+      <ScrollToTop />
     </div>
   );
 }
