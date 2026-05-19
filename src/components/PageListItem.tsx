@@ -1,9 +1,11 @@
 import { FileText, Edit2 } from 'lucide-react';
 import { useRelativeTime } from '../hooks/useRelativeTime';
+import { FavoriteButton } from './FavoriteButton';
 
 interface PageListItemProps {
   title: string;
   path: string;
+  slug?: string;
   modified: string | Date;
   snippet?: string;
   onClick?: () => void;
@@ -16,6 +18,7 @@ interface PageListItemProps {
 export function PageListItem({
   title,
   path,
+  slug,
   modified,
   snippet,
   onClick,
@@ -58,20 +61,27 @@ export function PageListItem({
         </p>
       </div>
 
-      {/* Edit button */}
-      {onEdit && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onEdit();
-          }}
-          className="flex-shrink-0 rounded-md p-1.5 text-gray-400 opacity-0 transition-all hover:bg-indigo-100 hover:text-indigo-600 group-hover:opacity-100 dark:hover:bg-gray-700 dark:hover:text-indigo-400"
-          aria-label={`Edit ${title}`}
-          title="Edit page"
-        >
-          <Edit2 className="h-4 w-4" />
-        </button>
-      )}
+      {/* Actions — visible on hover */}
+      <div className="flex items-center gap-1 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
+        {/* Favorite button — only if slug is provided */}
+        {slug && (
+          <FavoriteButton pageSlug={slug} pageTitle={title} size="sm" />
+        )}
+        {/* Edit button */}
+        {onEdit && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit();
+            }}
+            className="rounded-md p-1.5 text-gray-400 hover:bg-indigo-100 hover:text-indigo-600 dark:hover:bg-gray-700 dark:hover:text-indigo-400"
+            aria-label={`Edit ${title}`}
+            title="Edit page"
+          >
+            <Edit2 className="h-4 w-4" />
+          </button>
+        )}
+      </div>
     </div>
   );
 }

@@ -1,8 +1,13 @@
 import { useState, useEffect } from 'react';
+import { Star } from 'lucide-react';
+import { useFavorites } from '@/hooks/useFavorites';
 import MarkdownRenderer from './MarkdownRenderer';
+
+/* ── Types ─────────────────────────────────────────────────────────── */
 
 interface PageViewerProps {
   pageTitle: string;
+  pageSlug?: string;
 }
 
 interface PageContent {
@@ -10,6 +15,8 @@ interface PageContent {
   loading: boolean;
   error: string | null;
 }
+
+/* ── Helpers ───────────────────────────────────────────────────────── */
 
 /**
  * Stub function to simulate fetching page content.
@@ -189,12 +196,65 @@ function EmptyState() {
 }
 
 /**
+ * Page title header with favorite toggle.
+ */
+function PageHeader({ title, slug }: { title: string; slug?: string }) {
+  const { isFavorite, toggleFavorite } = useFavorites();
+  const [justToggled, setJustToggled] = useState(false);
+  const favored = slug ? isFavorite(slug) : false;
+
+  const handleClick = () => {
+    if (!slug) return;
+    toggleFavorite(slug, title);
+    setJustToggled(true);
+    setTimeout(() => setJustToggled(false), 200);
+  };
+
+  return (
+    <div className="mb-4 flex items-start justify-between border-b border-gray-200 pb-4 dark:border-gray-800">
+      <h2 className="text-lg font-bold tracking-tight text-gray-900 dark:text-gray-100">
+        {title}
+      </h2>
+      {slug && (
+        <button
+          onClick={handleClick}
+          className={`
+            flex items-center justify-center rounded-full p-1.5
+            text-gray-400 transition-colors duration-150
+            hover:bg-indigo-50 hover:text-indigo-500
+            dark:text-gray-500 dark:hover:bg-indigo-900/20 dark:hover:text-indigo-400
+            ${favored ? "text-indigo-500" : ""}
+          `}
+          aria-label={favored ? "Remove from favorites" : "Add to favorites"}
+          aria-pressed={favored}
+          title={favored ? "Remove from favorites" : "Add to favorites"}
+        >
+          <Star
+            size={20}
+            className={`
+              transition-transform duration-200
+              ${justToggled ? "scale-110" : "scale-100"}
+              ${favored ? "fill-indigo-500" : ""}
+            `}
+            style={
+              favored
+                ? { filter: "drop-shadow(0 0 3px rgba(99,102,241,0.5))" }
+                : undefined
+            }
+          />
+        </button>
+      )}
+    </div>
+  );
+}
+
+/**
  * PageViewer — fetches and renders markdown page content.
  *
  * Currently uses a stub fetch. Replace with Tauri command in the
  * build-wiki Tauri integration.
  */
-export default function PageViewer({ pageTitle }: PageViewerProps) {
+export default function PageViewer({ pageTitle, pageSlug }: PageViewerProps) {
   const [pageContent, setPageContent] = useState<PageContent>({
     content: '',
     loading: true,
@@ -239,6 +299,7 @@ export default function PageViewer({ pageTitle }: PageViewerProps) {
 
   return (
     <div className="w-full">
+      <PageHeader title={pageTitle} slug={pageSlug} />
       <MarkdownRenderer content={pageContent.content} className="w-full" />
     </div>
   );

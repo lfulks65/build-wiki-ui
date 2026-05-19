@@ -6,6 +6,7 @@ import { PageEditor } from "@/pages/PageEditor";
 import { Search } from "@/pages/Search";
 import { AssetBrowser } from "@/pages/AssetBrowser";
 import { CuratorDashboard } from "@/pages/CuratorDashboard";
+import { FavoritesPage } from "@/components/FavoritesPage";
 
 /* ── App ──────────────────────────────────────────────────────────── */
 
@@ -23,6 +24,7 @@ export default function App() {
             <Route path="search" element={<Search />} />
             <Route path="assets" element={<AssetBrowser />} />
             <Route path="curator" element={<CuratorDashboard />} />
+            <Route path="favorites" element={<FavoritesPage />} />
           </Layout>
         }
       />

@@ -11,6 +11,7 @@ const titleMap: Record<string, string> = {
   "/assets": "Assets",
   "/curator": "Curator",
   "/settings": "Settings",
+  "/favorites": "Starred Pages",
 };
 
 function pageTitle(pathname: string): string {
