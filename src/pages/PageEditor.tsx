@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { readPage, writePage } from "@/lib/api";
 import { useApiQuery } from "@/hooks/useApiQuery";
+import { TagInput } from "@/components/TagInput";
 
 export function PageEditor() {
   const { slug } = useParams<{ slug: string }>();
@@ -15,6 +16,7 @@ export function PageEditor() {
   );
 
   const [content, setContent] = useState("");
+  const [tags, setTags] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
@@ -31,7 +33,11 @@ export function PageEditor() {
     if (!slug || !content.trim()) return;
     setSaving(true);
     try {
-      await writePage(slug, content);
+      // Build content with YAML front-matter for tags
+      const frontmatter = tags.length > 0
+        ? `---\ntags:\n${tags.map((t) => `  - ${t}`).join("\n")}\n---\n\n`
+        : "";
+      await writePage(slug, frontmatter + content);
       showToast("Page saved successfully!");
       setTimeout(() => navigate(`/pages/${slug}`), 600);
     } catch (e) {
@@ -39,7 +45,7 @@ export function PageEditor() {
     } finally {
       setSaving(false);
     }
-  }, [slug, content, navigate]);
+  }, [slug, content, tags, navigate]);
 
   // Cmd/Ctrl+S shortcut
   useEffect(() => {
@@ -105,6 +111,18 @@ export function PageEditor() {
             {saving ? "Saving..." : "Save (⌘S)"}
           </button>
         </div>
+      </div>
+
+      {/* Tags input */}
+      <div className="space-y-1">
+        <label className="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
+          Tags
+        </label>
+        <TagInput
+          tags={tags}
+          onChange={setTags}
+          placeholder="Add tags, press Enter or comma"
+        />
       </div>
 
       {/* Split pane: editor + preview */}

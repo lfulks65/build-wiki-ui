@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useDebounce } from "@/hooks/useDebounce";
 import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
 import { SearchResultCard } from "@/components/SearchResultCard";
+import { TagFilter } from "@/components/TagFilter";
 import { FilterType, SearchHit, searchWiki } from "@/types/search";
 
 /* ------------------------------------------------------------------ */
@@ -15,6 +16,21 @@ export const SearchPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+
+  // Tag filter options (mock — derived from results)
+  const availableTagOptions = useMemo(() => {
+    const tagSet = new Set<string>();
+    for (const hit of results) {
+      // Derive pseudo-tags from source type
+      tagSet.add(hit.source);
+    }
+    return Array.from(tagSet).map((name) => ({
+      name,
+      slug: name,
+      count: results.filter((r) => r.source === name).length,
+    }));
+  }, [results]);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const resultsContainerRef = useRef<HTMLDivElement>(null);
@@ -63,6 +79,19 @@ export const SearchPage: React.FC = () => {
       cancelled = true;
     };
   }, [debouncedQuery, filter]);
+
+  // Toggle tag selection
+  const handleTagSelect = useCallback((slug: string) => {
+    setSelectedTags((prev) =>
+      prev.includes(slug)
+        ? prev.filter((t) => t !== slug)
+        : [...prev, slug]
+    );
+  }, []);
+
+  const handleClearTags = useCallback(() => {
+    setSelectedTags([]);
+  }, []);
 
   // Sync query to URL
   const updateUrl = useCallback((q: string) => {
@@ -117,6 +146,7 @@ export const SearchPage: React.FC = () => {
     setResults([]);
     setHasSearched(false);
     setError(null);
+    setSelectedTags([]);
     inputRef.current?.focus();
     updateUrl("");
   }, [updateUrl]);
@@ -177,7 +207,7 @@ export const SearchPage: React.FC = () => {
       </div>
 
       {/* ---- Filter Chips ---- */}
-      <div className="flex gap-2 mb-6 overflow-x-auto pb-1" role="tablist">
+      <div className="flex gap-2 mb-4 overflow-x-auto pb-1" role="tablist">
         {(["all", "pages", "assets"] as FilterType[]).map((f) => (
           <button
             key={f}
@@ -198,6 +228,18 @@ export const SearchPage: React.FC = () => {
           </button>
         ))}
       </div>
+
+      {/* ---- Tag Filter ---- */}
+      {hasSearched && results.length > 0 && (
+        <div className="mb-4">
+          <TagFilter
+            availableTags={availableTagOptions}
+            selectedTags={selectedTags}
+            onSelect={handleTagSelect}
+            onClear={selectedTags.length > 0 ? handleClearTags : undefined}
+          />
+        </div>
+      )}
 
       {/* ---- Results Area ---- */}
       <div
@@ -376,7 +418,7 @@ function ErrorIcon() {
       <path
         strokeLinecap="round"
         strokeLinejoin="round"
-        d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"
+        d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 0118 0zm-9 3.75h.008v.008H12v-.008z"
       />
     </svg>
   );

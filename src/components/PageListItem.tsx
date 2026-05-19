@@ -1,6 +1,7 @@
 import { FileText, Edit2 } from 'lucide-react';
 import { useRelativeTime } from '../hooks/useRelativeTime';
 import { FavoriteButton } from './FavoriteButton';
+import { TagBadge } from './TagBadge';
 
 interface PageListItemProps {
   title: string;
@@ -8,6 +9,7 @@ interface PageListItemProps {
   slug?: string;
   modified: string | Date;
   snippet?: string;
+  tags?: string[];
   onClick?: () => void;
   onEdit?: () => void;
 }
@@ -21,6 +23,7 @@ export function PageListItem({
   slug,
   modified,
   snippet,
+  tags,
   onClick,
   onEdit,
 }: PageListItemProps) {
@@ -51,6 +54,18 @@ export function PageListItem({
         <p className="truncate text-xs text-gray-500 dark:text-gray-400">
           {path}
         </p>
+        {tags && tags.length > 0 && (
+          <div className="mt-1 flex flex-wrap gap-1">
+            {tags.slice(0, 3).map((tag) => (
+              <TagBadge key={tag} label={tag} removable={false} />
+            ))}
+            {tags.length > 3 && (
+              <span className="text-xs text-gray-400 dark:text-gray-500">
+                +{tags.length - 3} more
+              </span>
+            )}
+          </div>
+        )}
         {snippet && (
           <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-gray-600 dark:text-gray-400">
             {snippet}
