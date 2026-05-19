@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Star } from 'lucide-react';
 import { useFavorites } from '@/hooks/useFavorites';
 import MarkdownRenderer from './MarkdownRenderer';
+import { BacklinksPanel } from './BacklinksPanel';
 
 /* ── Types ─────────────────────────────────────────────────────────── */
 
@@ -159,6 +160,8 @@ function ErrorState({ message, onRetry }: { message: string; onRetry: () => void
       <button
         onClick={onRetry}
         className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+        aria-label="Try Again"
+        title="Try Again"
       >
         Try Again
       </button>
@@ -301,6 +304,7 @@ export default function PageViewer({ pageTitle, pageSlug }: PageViewerProps) {
     <div className="w-full">
       <PageHeader title={pageTitle} slug={pageSlug} />
       <MarkdownRenderer content={pageContent.content} className="w-full" />
+      <BacklinksPanel pageSlug={pageSlug || ''} />
     </div>
   );
 }
