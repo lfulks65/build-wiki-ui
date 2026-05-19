@@ -1,14 +1,12 @@
-/* ── AssetBrowser — file / asset manager placeholder ──────────────── */
+import CuratorDashboardComponent from "@/components/CuratorDashboard";
 
-export function AssetBrowser(): React.ReactElement {
+export function AssetBrowser() {
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100">
+      <h1 className="mb-6 text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100">
         Assets
       </h1>
-      <p className="mt-2 text-gray-600 dark:text-gray-400">
-        Browse and manage wiki assets (placeholder).
-      </p>
+      <CuratorDashboardComponent />
     </div>
   );
 }
