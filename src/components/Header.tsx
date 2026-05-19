@@ -1,6 +1,8 @@
 import { useLocation } from "react-router-dom";
+import { Printer } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
+import { usePrintStyles } from "@/hooks/usePrintStyles";
 
 /* ── Page title mapping ───────────────────────────────────────────── */
 
@@ -27,6 +29,25 @@ interface HeaderProps {
   title?: string;
 }
 
+/** ── Print preview button ────────────────────────────────────────── */
+
+function PrintPreviewButton(): React.ReactElement {
+  const printStyles = usePrintStyles();
+
+  return (
+    <button
+      onClick={() => (printStyles.active ? printStyles.stop() : printStyles.start())}
+      className="flex h-9 w-9 items-center justify-center rounded-md text-gray-500
+                 transition-colors duration-150 hover:bg-gray-100 hover:text-gray-700
+                 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-100"
+      title={printStyles.active ? "Exit print preview" : "Preview print / Save as PDF"}
+      aria-label={printStyles.active ? "Exit print preview" : "Preview print"}
+    >
+      <Printer size={18} />
+    </button>
+  );
+}
+
 /* ── Component ────────────────────────────────────────────────────── */
 
 export function Header({ title }: HeaderProps): React.ReactElement {
@@ -45,9 +66,10 @@ export function Header({ title }: HeaderProps): React.ReactElement {
         {/* Spacer */}
         <div className="flex-1" />
 
-        {/* Right: theme toggle + Tauri controls */}
+        {/* Right: theme toggle + print + Tauri controls */}
         <div className="flex items-center gap-2">
           <ThemeToggle />
+          <PrintPreviewButton />
 
           {/* Tauri window controls spacer — visible only in Tauri */}
           <span

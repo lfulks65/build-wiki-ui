@@ -1,0 +1,549 @@
+/**
+ * print.css — Print-friendly styles for wiki pages.
+ *
+ * Imported via @media print so it only takes effect during
+ * printing / "Save as PDF".  All UI chrome is hidden and
+ * the content area is reformatted for clean paper output.
+ *
+ * Customisable via --print-* CSS custom properties (all set
+ * to sensible defaults below).
+ */
+
+/* ── Print custom properties (override these to tweak output) ── */
+
+:root {
+  --print-page-title: "Wiki";
+  --print-font-size: 11pt;
+  --print-line-height: 1.5;
+  --print-code-font-size: 9pt;
+  --print-link-color: #1a56db;
+  --print-code-bg: #f5f5f5;
+  --print-border-color: #d1d5db;
+  --print-text-color: #000000;
+  --print-muted-color: #4b5563;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   PRINT MEDIA QUERY
+   ═══════════════════════════════════════════════════════════════ */
+
+@media print {
+
+  /* ── Page-level settings ──────────────────────────────────── */
+
+  @page {
+    size: A4;
+    margin: 1in 0.75in;
+  }
+
+  /* Hide the default print header/footer; we use custom ones below. */
+  @page :left {
+    @bottom-right: "Page " counter(page) " of " counter(pages);
+  }
+  @page :right {
+    @bottom-right: "Page " counter(page) " of " counter(pages);
+  }
+
+  /* ── Reset body for print ─────────────────────────────────── */
+
+  body {
+    background: #fff !important;
+    color: var(--print-text-color) !important;
+    font-family: Georgia, 'Times New Roman', 'Noto Serif', serif;
+    font-size: var(--print-font-size);
+    line-height: var(--print-line-height);
+    margin: 0;
+    padding: 0;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* ── Hide ALL interactive chrome ──────────────────────────── */
+
+  .print\:hidden,
+  .sidebar,
+  .print\:hidden-print,
+  header,
+  [data-sidebar],
+  [data-header],
+  [data-scroll-to-top],
+  [data-command-palette],
+  [data-toast],
+  [data-progress-bar],
+  .theme-toggle,
+  .copy-code-btn,
+  .copy-btn,
+  .skeleton,
+  .skeleton-line,
+  .skeleton-lines,
+  .skeleton * {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  /* ── Main content area ────────────────────────────────────── */
+
+  main,
+  .main-content,
+  [role="main"],
+  .prose,
+  .prose-print {
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    position: static !important;
+    float: none !important;
+  }
+
+  /* ── Fix sidebar in the layout ────────────────────────────── */
+
+  aside,
+  nav[aria-label="Sidebar"],
+  .sidebar-nav {
+    display: none !important;
+    width: 0 !important;
+  }
+
+  /* ── Remove layout constraints ────────────────────────────── */
+
+  .flex.flex-col,
+  .flex.flex-1,
+  .flex.flex-col {
+    min-height: auto !important;
+    flex: none !important;
+  }
+
+  .overflow-y-auto,
+  .overflow-hidden,
+  .overflow-auto {
+    overflow: visible !important;
+  }
+
+  .sticky,
+  [style*="position: sticky"] {
+    position: static !important;
+  }
+
+  .z-30,
+  .z-40,
+  .z-50,
+  [style*="z-index: 30"],
+  [style*="z-index: 40"],
+  [style*="z-index: 50"] {
+    z-index: auto !important;
+  }
+
+  /* ── Frontmatter metadata line ────────────────────────────── */
+
+  .metadata-card {
+    display: block !important;
+    background: none !important;
+    border: none !important;
+    border-bottom: 1px solid var(--print-border-color) !important;
+    border-radius: 0 !important;
+    padding: 0.5em 0 0.75em 0 !important;
+    margin-bottom: 1em !important;
+  }
+
+  .metadata-card h3 {
+    color: var(--print-text-color) !important;
+    font-size: 1.2em !important;
+    margin-top: 0 !important;
+    margin-bottom: 0.25em !important;
+    padding-bottom: 0 !important;
+    border-bottom: none !important;
+  }
+
+  .metadata-card .tag {
+    display: inline-block !important;
+    padding: 0.1em 0.4em !important;
+    background: none !important;
+    border: 1px solid var(--print-border-color) !important;
+    border-radius: 0.25em !important;
+    color: var(--print-muted-color) !important;
+    font-size: 0.85em !important;
+    margin-right: 0.25em !important;
+  }
+
+  /* ── Typography ───────────────────────────────────────────── */
+
+  .prose,
+  .prose-print {
+    color: var(--print-text-color) !important;
+    font-size: var(--print-font-size);
+    line-height: var(--print-line-height);
+    max-width: none;
+    margin: 0 auto;
+  }
+
+  /* Headings — sans-serif, black, no underline */
+  .prose h1,
+  .prose h2,
+  .prose h3,
+  .prose h4,
+  .prose h5,
+  .prose h6 {
+    color: #000 !important;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
+    font-weight: 700 !important;
+    line-height: 1.25 !important;
+    margin-top: 1.5em !important;
+    margin-bottom: 0.5em !important;
+    padding-bottom: 0 !important;
+    border-bottom: none !important;
+    page-break-after: avoid;
+  }
+
+  .prose h1 {
+    font-size: 1.8em !important;
+  }
+
+  .prose h2 {
+    font-size: 1.4em !important;
+    border-top: 1px solid var(--print-border-color) !important;
+    padding-top: 0.5em !important;
+    margin-top: 2em !important;
+  }
+
+  .prose h3 {
+    font-size: 1.15em !important;
+  }
+
+  .prose h4 {
+    font-size: 1.05em !important;
+  }
+
+  /* Paragraphs */
+  .prose p {
+    margin-top: 1em !important;
+    margin-bottom: 1em !important;
+    text-align: left !important;
+    color: var(--print-text-color) !important;
+  }
+
+  .prose p:first-child {
+    margin-top: 0 !important;
+  }
+
+  /* Links — show URL for external, hide for internal */
+  .prose a,
+  .prose a:visited,
+  .prose a:hover {
+    color: var(--print-link-color) !important;
+    text-decoration: underline !important;
+    text-decoration-thickness: 1px !important;
+    background: none !important;
+  }
+
+  /* Show URL after ALL links by default */
+  .prose a[href]::after {
+    content: " (" attr(href) ")";
+    font-size: 0.85em;
+    color: var(--print-muted-color);
+    word-break: break-all;
+    font-family: Georgia, serif;
+  }
+
+  /* Don't show URL for internal/wiki links */
+  .prose a[href^="/pages"]::after,
+  .prose a[href^="/search"]::after,
+  .prose a[href^="/assets"]::after,
+  .prose a[href^="/curator"]::after,
+  .prose a[href^="/settings"]::after,
+  .prose a[href="#"]::after,
+  .prose a[href^="#"]::after,
+  .prose a[href^="javascript"]::after,
+  .prose a[data-print-no-url]::after {
+    content: "" !important;
+  }
+
+  /* ── Lists ────────────────────────────────────────────────── */
+
+  .prose ul,
+  .prose ol {
+    margin-top: 1em !important;
+    margin-bottom: 1em !important;
+    padding-left: 1.5em !important;
+  }
+
+  .prose li {
+    margin-top: 0.3em !important;
+    margin-bottom: 0.3em !important;
+  }
+
+  /* ── Code (inline) ────────────────────────────────────────── */
+
+  .prose code {
+    font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', 'Monaco', monospace !important;
+    font-size: 0.85em !important;
+    background-color: var(--print-code-bg) !important;
+    padding: 0.15em 0.3em !important;
+    border-radius: 0.2em !important;
+    color: var(--print-text-color) !important;
+    border: 1px solid var(--print-border-color) !important;
+  }
+
+  /* ── Code blocks ──────────────────────────────────────────── */
+
+  .prose pre,
+  .code-block-wrapper,
+  .code-block-wrapper pre {
+    background-color: var(--print-code-bg) !important;
+    border: 1px solid var(--print-border-color) !important;
+    border-radius: 0 !important;
+    padding: 0.75em 1em !important;
+    margin-top: 1em !important;
+    margin-bottom: 1em !important;
+    overflow-x: visible !important;
+    font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace !important;
+    font-size: var(--print-code-font-size) !important;
+    line-height: 1.5 !important;
+    white-space: pre-wrap !important;
+    word-wrap: break-word !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    position: static !important;
+    box-shadow: none !important;
+    color-adjust: exact !important;
+    -webkit-print-color-adjust: exact !important;
+  }
+
+  .prose pre code,
+  .code-block-wrapper pre code {
+    background: none !important;
+    border: none !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    color: var(--print-text-color) !important;
+    font-size: inherit !important;
+  }
+
+  /* Remove copy button */
+  .copy-code-btn,
+  [class*="copy-code-btn"] {
+    display: none !important;
+  }
+
+  /* ── Syntax highlighting — ensure colors survive print ────── */
+
+  .prose .token.comment,
+  .prose .token.prolog,
+  .prose .token.doctype,
+  .prose .token.cdata {
+    color: #6b7280 !important;
+    font-style: italic !important;
+  }
+
+  .prose .token.keyword,
+  .prose .token.keyword.control-flow,
+  .prose .token.keyword.operator {
+    color: #7c3aed !important;
+    font-weight: bold !important;
+  }
+
+  .prose .token.string,
+  .prose .token.string.char {
+    color: #059669 !important;
+  }
+
+  .prose .token.number,
+  .prose .token.number.boolean {
+    color: #d97706 !important;
+  }
+
+  .prose .token.function,
+  .prose .token.function-name {
+    color: #2563eb !important;
+  }
+
+  .prose .token.class-name,
+  .prose .token.class {
+    color: #0891b2 !important;
+  }
+
+  .prose .token.operator,
+  .prose .token.tag {
+    color: #7c3aed !important;
+  }
+
+  .prose .token.attr-name,
+  .prose .token.property {
+    color: #d97706 !important;
+  }
+
+  .prose .token.boolean {
+    color: #dc2626 !important;
+  }
+
+  .prose .token.constant,
+  .prose .token.symbol {
+    color: #059669 !important;
+  }
+
+  .prose .token.punctuation {
+    color: #6b7280 !important;
+  }
+
+  /* ── Blockquotes ──────────────────────────────────────────── */
+
+  .prose blockquote {
+    border-left: 3px solid var(--print-border-color) !important;
+    padding: 0.5em 0 0.5em 1em !important;
+    margin-top: 1em !important;
+    margin-bottom: 1em !important;
+    background: none !important;
+    font-style: italic !important;
+    color: var(--print-muted-color) !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  /* ── Tables ───────────────────────────────────────────────── */
+
+  .prose table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    margin-top: 1em !important;
+    margin-bottom: 1em !important;
+    font-size: 0.9em !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    color: var(--print-text-color) !important;
+  }
+
+  .prose thead {
+    background-color: #f9fafb !important;
+  }
+
+  .prose th {
+    padding: 0.5em 0.75em !important;
+    text-align: left !important;
+    font-weight: 600 !important;
+    border: 1px solid var(--print-border-color) !important;
+    color: var(--print-text-color) !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .prose td {
+    padding: 0.5em 0.75em !important;
+    border: 1px solid var(--print-border-color) !important;
+    color: var(--print-text-color) !important;
+  }
+
+  .prose tbody tr {
+    background: transparent !important;
+  }
+
+  /* ── Horizontal rules ─────────────────────────────────────── */
+
+  .prose hr {
+    border: none !important;
+    border-top: 1px solid var(--print-border-color) !important;
+    margin-top: 1.5em !important;
+    margin-bottom: 1.5em !important;
+  }
+
+  /* ── Images ───────────────────────────────────────────────── */
+
+  .prose img {
+    max-width: 100% !important;
+    height: auto !important;
+    border-radius: 0 !important;
+    margin-top: 1em !important;
+    margin-bottom: 1em !important;
+    box-shadow: none !important;
+    page-break-inside: avoid !important;
+    break-before: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  /* ── Page break control ───────────────────────────────────── */
+
+  /* Avoid breaking inside these elements */
+  .prose h1,
+  .prose h2,
+  .prose h3,
+  .prose h4,
+  .prose h5,
+  .prose h6,
+  .prose pre,
+  .code-block-wrapper,
+  .prose table,
+  .prose thead,
+  .prose tr,
+  .prose blockquote,
+  .metadata-card,
+  .prose figure {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  /* Allow breaks before major sections */
+  .prose h2 {
+    page-break-before: auto !important;
+  }
+
+  /* ── Expand any collapsed content ─────────────────────────── */
+
+  .collapse-content,
+  [class*="collapsed"],
+  details[open] summary,
+  details:not([open]) summary {
+    display: block !important;
+  }
+
+  /* Ensure all content is visible, not clipped */
+  .collapse-content *,
+  .details-content,
+  [class*="collapsed"] {
+    overflow: visible !important;
+    max-height: none !important;
+    visibility: visible !important;
+  }
+
+  /* ── Remove backgrounds from elements that shouldn't have them ─ */
+
+  .prose,
+  .prose *,
+  .prose *::before,
+  .prose *::after {
+    background-image: none !important;
+  }
+
+  /* ── Footer on printed pages ──────────────────────────────── */
+
+  .print-footer {
+    display: block !important;
+    position: fixed;
+    bottom: 0;
+    right: 0;
+    left: 0;
+    padding: 0.5em 0;
+    margin: 0 0.75in;
+    border-top: 1px solid var(--print-border-color);
+    text-align: center;
+    font-size: 0.8em;
+    color: var(--print-muted-color);
+    font-family: Georgia, serif;
+  }
+
+  .print-footer::before {
+    content: var(--print-page-title);
+    margin-right: 1em;
+  }
+
+  /* ── Remove any print-only visual polish ──────────────────── */
+
+  * {
+    text-shadow: none !important;
+    box-shadow: none !important;
+  }
+
+  /* ── Links in prose should have a slight contrast for black/white ─ */
+
+  .prose a::after {
+    color: var(--print-muted-color);
+  }
+}
