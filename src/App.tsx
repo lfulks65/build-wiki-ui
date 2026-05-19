@@ -7,6 +7,7 @@ import { SearchPage } from "@/components/SearchPage";
 import { AssetBrowser } from "@/pages/AssetBrowser";
 import CuratorDashboard from "@/components/CuratorDashboard";
 import { Settings } from "@/pages/Settings";
+import { FavoritesPage } from "@/components/FavoritesPage";
 
 export default function App() {
   return (
@@ -20,6 +21,7 @@ export default function App() {
         <Route path="assets" element={<AssetBrowser />} />
         <Route path="curator" element={<CuratorDashboard />} />
         <Route path="settings" element={<Settings />} />
+        <Route path="favorites" element={<FavoritesPage />} />
       </Route>
     </Routes>
   );
