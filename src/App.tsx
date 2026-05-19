@@ -6,26 +6,30 @@ import { PageEditor } from "@/pages/PageEditor";
 import { Search } from "@/pages/Search";
 import { AssetBrowser } from "@/pages/AssetBrowser";
 import { CuratorDashboard } from "@/pages/CuratorDashboard";
+import CommandPalette from "@/components/CommandPalette";
 
 /* ── App ──────────────────────────────────────────────────────────── */
 
 export default function App() {
   return (
-    <Routes>
-      <Route
-        path="/"
-        element={
-          <Layout>
-            <Route index element={<Navigate to="/pages" replace />} />
-            <Route path="pages" element={<PageList />} />
-            <Route path="pages/:slug" element={<PageViewer />} />
-            <Route path="pages/:slug/edit" element={<PageEditor />} />
-            <Route path="search" element={<Search />} />
-            <Route path="assets" element={<AssetBrowser />} />
-            <Route path="curator" element={<CuratorDashboard />} />
-          </Layout>
-        }
-      />
-    </Routes>
+    <>
+      <CommandPalette />
+      <Routes>
+        <Route
+          path="/"
+          element={
+            <Layout>
+              <Route index element={<Navigate to="/pages" replace />} />
+              <Route path="pages" element={<PageList />} />
+              <Route path="pages/:slug" element={<PageViewer />} />
+              <Route path="pages/:slug/edit" element={<PageEditor />} />
+              <Route path="search" element={<Search />} />
+              <Route path="assets" element={<AssetBrowser />} />
+              <Route path="curator" element={<CuratorDashboard />} />
+            </Layout>
+          }
+        />
+      </Routes>
+    </>
   );
 }
