@@ -25,6 +25,7 @@ const KNOWN_ROUTES: Record<string, string> = {
   settings: "Settings",
   docs: "Docs",
   about: "About",
+  favorites: "Starred",
 };
 
 // ── Hook ───────────────────────────────────────────────────────────

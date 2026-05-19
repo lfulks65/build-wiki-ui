@@ -1,14 +1,19 @@
-/* ── PageViewer — renders a single wiki page ──────────────────────── */
+import { useParams } from "react-router-dom";
+import PageViewer from "@/components/PageViewer";
 
+/**
+ * PageViewer page — renders a single wiki page at `/pages/:slug`.
+ *
+ * Extracts the slug from the route and derives a title for display.
+ */
 export function PageViewer(): React.ReactElement {
-  return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100">
-        Page Viewer
-      </h1>
-      <p className="mt-2 text-gray-600 dark:text-gray-400">
-        Rendered wiki page content (placeholder).
-      </p>
-    </div>
-  );
+  const { slug } = useParams<{ slug: string }>();
+  const pageTitle = slug
+    ? slug
+        .split("-")
+        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+        .join(" ")
+    : "Page";
+
+  return <PageViewer pageTitle={pageTitle} pageSlug={slug} />;
 }

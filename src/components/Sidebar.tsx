@@ -9,7 +9,10 @@ import {
   ChevronLeft,
   ChevronRight,
   Menu,
+  Star,
 } from "lucide-react";
+import { useFavorites } from "@/hooks/useFavorites";
+import { FavoritesList } from "@/components/FavoritesList";
 
 /* ── Types ────────────────────────────────────────────────────────── */
 
@@ -62,6 +65,8 @@ function Tooltip({
 export function Sidebar({ navItems = defaultNavItems }: SidebarProps): React.ReactElement {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { favorites } = useFavorites();
+  const hasFavorites = favorites.length > 0;
 
   const navWidthClass = collapsed ? "w-16" : "w-64";
 
@@ -136,7 +141,34 @@ export function Sidebar({ navItems = defaultNavItems }: SidebarProps): React.Rea
                 </li>
               );
             })}
+
+            {/* ── Starred nav item — only shown when there are favorites ── */}
+            {hasFavorites && (
+              <li>
+                <Tooltip show={collapsed}>
+                  <NavLink
+                    to="/favorites"
+                    end={false}
+                    className={({ isActive }) =>
+                      [
+                        "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-150",
+                        isActive
+                          ? "bg-indigo-50 text-indigo-600 dark:bg-indigo-950/50 dark:text-indigo-400"
+                          : "text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-100",
+                        collapsed ? "justify-center" : "",
+                      ].join(" ")
+                    }
+                  >
+                    <Star size={20} className="shrink-0 fill-indigo-500 text-indigo-500" />
+                    {!collapsed && <span>Starred</span>}
+                  </NavLink>
+                </Tooltip>
+              </li>
+            )}
           </ul>
+
+          {/* ── Favorites quick-access section ── */}
+          {!collapsed && <FavoritesList />}
         </nav>
 
         {/* ── Collapse / expand toggle ── */}
