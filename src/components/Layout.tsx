@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Outlet } from "react-router-dom";
 import { Sidebar, type NavItem } from "@/components/Sidebar";
 import { Header } from "@/components/Header";
+import { MobileBottomNav } from "@/components/MobileBottomNav";
 
 export interface LayoutProps {
   navItems?: NavItem[];
@@ -20,11 +21,14 @@ export function Layout({ navItems, children }: LayoutProps): React.ReactElement 
         <Header />
 
         {/* ── Scrollable content ── */}
-        <main className="flex-1 overflow-y-auto p-4 lg:p-6">
+        <main className="flex-1 overflow-y-auto p-4 pb-20 lg:pb-6 lg:p-6">
           <div className="mx-auto w-full max-w-5xl">
             {children || <Outlet />}
           </div>
         </main>
+
+        {/* ── Mobile bottom nav ── */}
+        <MobileBottomNav />
       </div>
     </div>
   );
