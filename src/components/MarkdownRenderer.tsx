@@ -1,6 +1,7 @@
 import { useRef, useEffect, useCallback } from 'react';
 import { marked } from 'marked';
 import CopyButton from './CopyButton';
+import { slugify } from '@/utils/slug';
 import type { Renderer } from 'marked';
 
 interface MarkdownRendererProps {
@@ -204,6 +205,17 @@ renderer.codeblock = ((text: string, lang: string) => {
       <pre><code class="language-${lang || 'text'}">${highlighted}</code></pre>
     </div>
   `;
+}) as any;
+
+// Override heading renderer to add id attributes for h2 and h3 headings
+// This enables scrollspy to track the active section
+renderer.heading = ((text: string, level: number) => {
+  // Only add IDs for h2 and h3 (the headings the ToC tracks)
+  if (level >= 2 && level <= 3) {
+    const id = slugify(text);
+    return `<h${level} id="${id}">${text}</h${level}>`;
+  }
+  return `<h${level}>${text}</h${level}>`;
 }) as any;
 
 marked.setOptions({

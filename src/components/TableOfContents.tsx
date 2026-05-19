@@ -1,6 +1,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import { ChevronDown, ChevronRight, Menu } from 'lucide-react';
 import { useScrollSpy } from '@/hooks/useScrollSpy';
+import { slugify } from '@/utils/slug';
 
 /* ── Types ──────────────────────────────────────────────────────────── */
 
@@ -13,16 +14,6 @@ interface HeadingItem {
 
 /* ── Helpers ────────────────────────────────────────────────────────── */
 
-/** Turn heading text into a URL-safe slug ID. */
-function slugify(text: string): string {
-  return text
-    .toLowerCase()
-    .replace(/[^\w\s-]/g, '')
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
-    .trim();
-}
-
 /** Parse ## and ### headings from markdown into a nested list. */
 function parseHeadings(markdown: string): HeadingItem[] {
   const headingRegex = /^(#{2,3})\s+(.+)$/gm;
@@ -34,7 +25,8 @@ function parseHeadings(markdown: string): HeadingItem[] {
     raw.push({ level, text: match[2].trim() });
   }
 
-  if (raw.length < 2) return []; // Need at least 3 headings total
+  // Hide ToC when page has fewer than 3 headings
+  if (raw.length < 3) return [];
 
   const result: HeadingItem[] = [];
   for (const h of raw) {

@@ -1,23 +1,19 @@
 /**
- * Utility functions for slug formatting.
- *
- * `slugify`  — converts a human-readable title into a URL-friendly slug.
- * `titleCase` — converts a kebab-case / URL slug into a human-readable title.
- */
-
-/**
- * Convert a human-readable title into a URL-friendly slug.
+ * Convert a heading title into a URL-friendly slug ID.
+ * Used by both MarkdownRenderer (to generate heading IDs) and
+ * TableOfContents (to match headings → scrollspy IDs).
  *
  * Rules:
  *  - Lowercase the entire string
- *  - Replace spaces and underscores with hyphens
- *  - Strip non-alphanumeric characters (except hyphens)
+ *  - Replace spaces, underscores, and tabs with hyphens
+ *  - Strip non-alphanumeric characters (keep hyphens)
  *  - Collapse consecutive hyphens into one
  *  - Trim leading / trailing hyphens
  *
  * @example
  *   slugify("Getting Started")     // "getting-started"
  *   slugify("API Reference v2!")   // "api-reference-v2"
+ *   slugify("What is Build Wiki?") // "what-is-build-wiki"
  */
 export function slugify(title: string): string {
   return title
@@ -30,16 +26,6 @@ export function slugify(title: string): string {
 
 /**
  * Convert a kebab-case / URL slug into a human-readable title.
- *
- * Rules:
- *  - Split on hyphens
- *  - Capitalize the first letter of each word
- *  - Join with spaces
- *
- * Handles edge-cases:
- *  - Empty string → empty string
- *  - Leading/trailing hyphens are trimmed before splitting
- *  - Acronyms like "api" are left as "Api" (natural title-casing)
  *
  * @example
  *   titleCase("getting-started")       // "Getting Started"
