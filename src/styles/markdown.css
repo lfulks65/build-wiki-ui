@@ -353,7 +353,7 @@
     background-color: rgba(99, 102, 241, 0.08);
   }
 
-  /* Images */
+  /* Images — clickable for lightbox */
   .prose img {
     max-width: 100%;
     height: auto;
@@ -361,6 +361,12 @@
     margin-top: 1.5rem;
     margin-bottom: 1.5rem;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    cursor: zoom-in;
+    transition: opacity 150ms ease;
+  }
+
+  .prose img:hover {
+    opacity: 0.9;
   }
 
   .dark .prose img {
@@ -476,5 +482,17 @@
     padding: 3rem 2rem;
     text-align: center;
     color: var(--color-text-muted);
+  }
+}
+
+/* Lightbox open animation */
+@keyframes lightbox-in {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
   }
 }
