@@ -1,0 +1,56 @@
+import { useLocation } from "react-router-dom";
+import { ThemeToggle } from "@/components/ThemeToggle";
+
+/* ── Page title mapping ───────────────────────────────────────────── */
+
+const titleMap: Record<string, string> = {
+  "/pages": "Pages",
+  "/pages/": "Page",
+  "/search": "Search",
+  "/assets": "Assets",
+  "/curator": "Curator",
+  "/settings": "Settings",
+};
+
+function pageTitle(pathname: string): string {
+  if (pathname === "/") return "Pages";
+  if (pathname.startsWith("/pages")) {
+    if (pathname === "/pages") return "Pages";
+    return "Page";
+  }
+  return titleMap[pathname] || "Wiki";
+}
+
+interface HeaderProps {
+  /** Override the computed page title. */
+  title?: string;
+}
+
+/* ── Component ────────────────────────────────────────────────────── */
+
+export function Header({ title }: HeaderProps): React.ReactElement {
+  const { pathname } = useLocation();
+  const displayTitle = title ?? pageTitle(pathname);
+
+  return (
+    <header className="sticky top-0 z-30 flex h-16 items-center border-b border-gray-200 bg-white/80 px-4 backdrop-blur dark:border-gray-800 dark:bg-gray-950/80">
+      {/* ── Left: page title ── */}
+      <div className="flex min-w-0 flex-1 items-center gap-3">
+        <h1 className="truncate text-lg font-semibold tracking-tight text-gray-900 dark:text-gray-100">
+          {displayTitle}
+        </h1>
+      </div>
+
+      {/* ── Right: theme toggle + Tauri controls ── */}
+      <div className="flex items-center gap-2">
+        <ThemeToggle />
+
+        {/* Tauri window controls spacer — visible only in Tauri */}
+        <span
+          className="hidden h-5 w-14 shrink-0 lg:inline"
+          data-tauri-drag-region
+        />
+      </div>
+    </header>
+  );
+}
