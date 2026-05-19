@@ -5,8 +5,8 @@ import { useBreadcrumbs, type Breadcrumb } from "@/hooks/useBreadcrumbs";
 
 // ── Constants ──────────────────────────────────────────────────────
 
-/** Maximum visible breadcrumb items on mobile before collapsing. */
-const MOBILE_MAX_VISIBLE = 2;
+/** Minimum crumbs to trigger mobile collapse: first + last 2 = 3 visible. */
+const MOBILE_COLLAPSE_THRESHOLD = 3;
 
 // ── Component ──────────────────────────────────────────────────────
 
@@ -16,7 +16,7 @@ const MOBILE_MAX_VISIBLE = 2;
  * - Dynamically renders a breadcrumb trail based on the current route.
  * - The last crumb is plain text (current page); all others are clickable links.
  * - On mobile (< md breakpoint), overflow items are collapsed behind a "…"
- *   dropdown that reveals the hidden crumbs.
+ *   dropdown that reveals the hidden crumbs.  Keeps first + last 2 visible.
  * - Keyboard accessible: Tab through links, Escape closes dropdown.
  */
 export function Breadcrumbs(): React.ReactElement | null {
@@ -35,25 +35,16 @@ export function Breadcrumbs(): React.ReactElement | null {
 // ── Internal: breadcrumb list ──────────────────────────────────────
 
 function BreadcrumbList({ crumbs }: { crumbs: Breadcrumb[] }) {
-  // On mobile we collapse everything except the first + last items
-  // when there are more than MOBILE_MAX_VISIBLE crumbs.
-  const shouldCollapse = crumbs.length > MOBILE_MAX_VISIBLE;
+  // On mobile we collapse everything between the first and last 2 items
+  // when there are more than MOBILE_COLLAPSE_THRESHOLD crumbs.
+  const shouldCollapse = crumbs.length > MOBILE_COLLAPSE_THRESHOLD;
 
-  // visible crumbs on desktop: everything
-  // visible crumbs on mobile: first + last (if collapsed)
-  const desktopCrumbs = crumbs;
-
-  // Mobile: show first item, then "...", then last item
-  const mobileFirst = crumbs[0];
-  const mobileHidden = crumbs.slice(1, -1);
-  const mobileLast = crumbs[crumbs.length - 1];
-
+  // ── Desktop (md+) — show everything ──
   return (
     <>
-      {/* ── Desktop (md+) ── */}
-      <ol className="hidden items-center md:flex" aria-label="Breadcrumb">
-        {desktopCrumbs.map((crumb, i) => (
-          <Fragment key={`${crumb.label}-${i}`}>
+      <ol className="hidden items-center md:flex" aria-label="Breadcrumb desktop">
+        {crumbs.map((crumb, i) => (
+          <Fragment key={`d-${i}`}>
             {i > 0 && <ChevronRight size={14} className="mx-2 text-gray-400" aria-hidden />}
             <li>
               {crumb.path ? (
@@ -78,70 +69,66 @@ function BreadcrumbList({ crumbs }: { crumbs: Breadcrumb[] }) {
 
       {/* ── Mobile (< md) ── */}
       {shouldCollapse ? (
-        <ol className="flex items-center md:hidden" aria-label="Breadcrumb">
-          {/* First crumb */}
+        <ol className="flex items-center md:hidden" aria-label="Breadcrumb mobile">
+          {/* First crumb (always visible) */}
           <li>
-            {mobileFirst.path ? (
-              <Link
-                to={mobileFirst.path}
-                className="text-gray-500 hover:text-indigo-600 dark:text-gray-400 dark:hover:text-indigo-400 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 rounded"
-              >
-                {mobileFirst.label}
-              </Link>
-            ) : (
-              <span className="text-gray-900 dark:text-gray-100 font-medium" aria-current="page">
-                {mobileFirst.label}
-              </span>
-            )}
+            <CrumbLink crumb={crumbs[0]} />
           </li>
+
+          {/* Chevron before collapse */}
+          <ChevronRight size={14} className="mx-2 text-gray-400" aria-hidden />
 
           {/* Collapsed "..." dropdown */}
-          <ChevronRight size={14} className="mx-2 text-gray-400" aria-hidden />
           <li>
-            <CollapsedCrumbs hidden={mobileHidden} />
+            <CollapsedCrumbs hidden={crumbs.slice(1, -2)} />
           </li>
 
-          {/* Last crumb */}
+          {/* Chevron after collapse */}
           <ChevronRight size={14} className="mx-2 text-gray-400" aria-hidden />
-          <li>
-            {mobileLast.path ? (
-              <Link
-                to={mobileLast.path}
-                className="text-gray-500 hover:text-indigo-600 dark:text-gray-400 dark:hover:text-indigo-400 transition-colors duration-150"
-              >
-                {mobileLast.label}
-              </Link>
-            ) : (
-              <span className="text-gray-900 dark:text-gray-100 font-medium" aria-current="page">
-                {mobileLast.label}
-              </span>
-            )}
-          </li>
-        </ol>
-      ) : (
-        <ol className="flex items-center md:hidden" aria-label="Breadcrumb">
-          {crumbs.map((crumb, i) => (
-            <Fragment key={`m-${crumb.label}-${i}`}>
+
+          {/* Last 2 crumbs always visible */}
+          {crumbs.slice(-2).map((crumb, i) => (
+            <Fragment key={`m-last-${i}`}>
               {i > 0 && <ChevronRight size={14} className="mx-2 text-gray-400" aria-hidden />}
               <li>
-                {crumb.path ? (
-                  <Link
-                    to={crumb.path}
-                    className="text-gray-500 hover:text-indigo-600 dark:text-gray-400 dark:hover:text-indigo-400 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 rounded"
-                  >
-                    {crumb.label}
-                  </Link>
-                ) : (
-                  <span className="text-gray-900 dark:text-gray-100 font-medium" aria-current="page">
-                    {crumb.label}
-                  </span>
-                )}
+                <CrumbLink crumb={crumb} />
+              </li>
+            </Fragment>
+          ))}
+        </ol>
+      ) : (
+        <ol className="flex items-center md:hidden" aria-label="Breadcrumb mobile">
+          {crumbs.map((crumb, i) => (
+            <Fragment key={`m-all-${i}`}>
+              {i > 0 && <ChevronRight size={14} className="mx-2 text-gray-400" aria-hidden />}
+              <li>
+                <CrumbLink crumb={crumb} />
               </li>
             </Fragment>
           ))}
         </ol>
       )}
     </>
+  );
+}
+
+// ── Internal: single crumb link or plain text ──────────────────────
+
+function CrumbLink({ crumb }: { crumb: Breadcrumb }) {
+  if (crumb.path) {
+    return (
+      <Link
+        to={crumb.path}
+        className="text-gray-500 hover:text-indigo-600 dark:text-gray-400 dark:hover:text-indigo-400 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 rounded"
+      >
+        {crumb.label}
+      </Link>
+    );
+  }
+  return (
+    <span className="text-gray-900 dark:text-gray-100 font-medium" aria-current="page">
+      {crumb.label}
+    </span>
   );
 }
 
@@ -176,6 +163,8 @@ function CollapsedCrumbs({ hidden }: { hidden: Breadcrumb[] }) {
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [open]);
+
+  if (hidden.length === 0) return null;
 
   return (
     <div ref={containerRef} className="relative">
