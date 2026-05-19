@@ -1,75 +1,59 @@
-import { useVaultInfo, usePages, useCuratorStatus } from "@/hooks/useApiQuery";
+import { useState } from 'react';
+import PageViewer from './components/PageViewer';
 
 function App() {
-  const { data: vault, isLoading: vaultLoading } = useVaultInfo();
-  const { data: pages, isLoading: pagesLoading } = usePages();
-  const { data: curator, isLoading: curatorLoading } = useCuratorStatus();
+  const [pageTitle, setPageTitle] = useState('Getting Started with Build Wiki');
+
+  // Simple dark mode toggle
+  const [dark, setDark] = useState(false);
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900">
-      <header className="bg-white border-b border-gray-200 px-6 py-4">
-        <h1 className="text-2xl font-bold">Build Wiki</h1>
-      </header>
-
-      <main className="max-w-6xl mx-auto px-6 py-8 space-y-8">
-        {/* Vault Info */}
-        <section>
-          <h2 className="text-lg font-semibold mb-3">Vault</h2>
-          {vaultLoading ? (
-            <div className="animate-pulse bg-gray-200 h-24 rounded-lg" />
-          ) : vault ? (
-            <div className="bg-white rounded-lg border border-gray-200 p-4 space-y-1">
-              <p><span className="font-medium">Name:</span> {vault.name}</p>
-              <p><span className="font-medium">Path:</span> {vault.path}</p>
-              <p><span className="font-medium">Pages:</span> {vault.pageCount}</p>
-              <p><span className="font-medium">Assets:</span> {vault.assetCount}</p>
+    <div className={dark ? 'dark' : ''}>
+      <div className="min-h-screen bg-white dark:bg-gray-900 transition-colors duration-200">
+        {/* Header */}
+        <header className="border-b border-gray-200 dark:border-gray-700">
+          <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <svg
+                className="w-6 h-6 text-indigo-600 dark:text-indigo-400"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+                />
+              </svg>
+              <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Build Wiki
+              </h1>
             </div>
-          ) : null}
-        </section>
-
-        {/* Pages */}
-        <section>
-          <h2 className="text-lg font-semibold mb-3">Pages ({pages?.length ?? 0})</h2>
-          {pagesLoading ? (
-            <div className="animate-pulse space-y-2">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="bg-gray-200 h-12 rounded-lg" />
-              ))}
-            </div>
-          ) : pages ? (
-            <div className="bg-white rounded-lg border border-gray-200 divide-y divide-gray-100">
-              {pages.map((page) => (
-                <div key={page.path} className="px-4 py-3">
-                  <p className="font-medium">{page.title}</p>
-                  <p className="text-sm text-gray-500">{page.path}</p>
-                </div>
-              ))}
-            </div>
-          ) : null}
-        </section>
-
-        {/* Curator Status */}
-        <section>
-          <h2 className="text-lg font-semibold mb-3">Curator</h2>
-          {curatorLoading ? (
-            <div className="animate-pulse bg-gray-200 h-20 rounded-lg" />
-          ) : curator ? (
-            <div className="bg-white rounded-lg border border-gray-200 p-4 space-y-1">
-              <p>
-                <span className="font-medium">Status:</span>{" "}
-                {curator.running ? "Running" : curator.idle ? "Idle" : "Stopped"}
-              </p>
-              <p><span className="font-medium">Queue Depth:</span> {curator.queueDepth}</p>
-              {curator.lastRun && (
-                <p>
-                  <span className="font-medium">Last Run:</span>{" "}
-                  {new Date(curator.lastRun).toLocaleString()}
-                </p>
+            <button
+              onClick={() => setDark(!dark)}
+              className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              aria-label="Toggle dark mode"
+            >
+              {dark ? (
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+              ) : (
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                </svg>
               )}
-            </div>
-          ) : null}
-        </section>
-      </main>
+            </button>
+          </div>
+        </header>
+
+        {/* Main content */}
+        <main className="max-w-4xl mx-auto px-4 py-8">
+          <PageViewer pageTitle={pageTitle} />
+        </main>
+      </div>
     </div>
   );
 }
