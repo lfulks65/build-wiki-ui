@@ -1,8 +1,10 @@
 import { useLocation } from "react-router-dom";
 import { Printer } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { ConnectionStatusIndicator } from "@/components/ConnectionStatusIndicator";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { usePrintStyles } from "@/hooks/usePrintStyles";
+import { useConnectionStatus } from "@/hooks/useConnectionStatus";
 
 /* ── Page title mapping ───────────────────────────────────────────── */
 
@@ -54,6 +56,7 @@ function PrintPreviewButton(): React.ReactElement {
 export function Header({ title }: HeaderProps): React.ReactElement {
   const { pathname } = useLocation();
   const displayTitle = title ?? pageTitle(pathname);
+  const { online, checking, failureCount, checkNow } = useConnectionStatus();
 
   return (
     <header className="sticky top-0 z-30 flex h-16 flex-col border-b border-gray-200 bg-white/80 px-4 backdrop-blur dark:border-gray-800 dark:bg-gray-950/80">
@@ -67,8 +70,14 @@ export function Header({ title }: HeaderProps): React.ReactElement {
         {/* Spacer */}
         <div className="flex-1" />
 
-        {/* Right: theme toggle + print + Tauri controls */}
+        {/* Right: connection status + theme toggle + print + Tauri controls */}
         <div className="flex items-center gap-2">
+          <ConnectionStatusIndicator
+            online={online}
+            checking={checking}
+            failureCount={failureCount}
+            checkNow={checkNow}
+          />
           <ThemeToggle />
           <PrintPreviewButton />
 
