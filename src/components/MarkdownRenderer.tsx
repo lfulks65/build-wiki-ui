@@ -1,6 +1,8 @@
-import { useRef, useEffect, useCallback } from 'react';
+import { useRef, useEffect, useCallback, Fragment } from 'react';
 import { marked } from 'marked';
 import CopyButton from './CopyButton';
+import ImageLightbox from './ImageLightbox';
+import { useImageLightbox } from '../hooks/useImageLightbox';
 import type { Renderer } from 'marked';
 
 interface MarkdownRendererProps {
@@ -213,6 +215,7 @@ marked.setOptions({
 
 export default function MarkdownRenderer({ content, className = '' }: MarkdownRendererProps) {
   const contentRef = useRef<HTMLDivElement>(null);
+  const lightbox = useImageLightbox();
 
   const renderContent = useCallback(() => {
     const { frontmatter, body } = extractFrontmatter(content);
@@ -222,10 +225,13 @@ export default function MarkdownRenderer({ content, className = '' }: MarkdownRe
 
   const { frontmatter, html } = renderContent();
 
-  // Attach copy buttons after render
+  // Setup copy buttons, register images, and attach click handlers after render
   useEffect(() => {
     const container = contentRef.current;
     if (!container) return;
+
+    // Register images for lightbox navigation
+    lightbox.registerImages(container);
 
     // Set up copy button event listeners
     const setupCopyButtons = () => {
@@ -258,47 +264,74 @@ export default function MarkdownRenderer({ content, className = '' }: MarkdownRe
       });
     };
 
+    // Handle image clicks for lightbox
+    const handleImageClick = (e: MouseEvent) => {
+      const img = (e.target as HTMLElement).closest('img');
+      if (img instanceof HTMLImageElement) {
+        e.preventDefault();
+        lightbox.open(img.src, img.alt || '');
+      }
+    };
+
     setupCopyButtons();
-  }, [html]);
+    container.addEventListener('click', handleImageClick);
+
+    return () => {
+      container.removeEventListener('click', handleImageClick);
+    };
+  }, [html, lightbox]);
 
   return (
-    <div className={className}>
-      {/* Frontmatter metadata card */}
-      {frontmatter && (
-        <div className="metadata-card">
-          {frontmatter.title && (
-            <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--color-text)' }}>
-              {frontmatter.title}
-            </h3>
-          )}
-          <div className="flex flex-wrap items-center gap-3 text-sm">
-            {frontmatter.date && (
-              <span className="text-gray-500 dark:text-gray-400">
-                {new Date(frontmatter.date as string).toLocaleDateString('en-US', {
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric',
-                })}
-              </span>
+    <Fragment>
+      <div className={className}>
+        {/* Frontmatter metadata card */}
+        {frontmatter && (
+          <div className="metadata-card">
+            {frontmatter.title && (
+              <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--color-text)' }}>
+                {frontmatter.title}
+              </h3>
             )}
-            {frontmatter.tags && Array.isArray(frontmatter.tags) && (
-              <div className="flex flex-wrap gap-1.5">
-                {frontmatter.tags.map((tag, i) => (
-                  <span key={i} className="tag">{tag}</span>
-                ))}
-              </div>
-            )}
+            <div className="flex flex-wrap items-center gap-3 text-sm">
+              {frontmatter.date && (
+                <span className="text-gray-500 dark:text-gray-400">
+                  {new Date(frontmatter.date as string).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                  })}
+                </span>
+              )}
+              {frontmatter.tags && Array.isArray(frontmatter.tags) && (
+                <div className="flex flex-wrap gap-1.5">
+                  {frontmatter.tags.map((tag, i) => (
+                    <span key={i} className="tag">{tag}</span>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Rendered markdown */}
-      <div
-        className="prose"
-        dangerouslySetInnerHTML={{ __html: html }}
-        ref={contentRef}
+        {/* Rendered markdown */}
+        <div
+          className="prose"
+          dangerouslySetInnerHTML={{ __html: html }}
+          ref={contentRef}
+        />
+      </div>
+
+      {/* Image lightbox overlay */}
+      <ImageLightbox
+        src={lightbox.currentSrc}
+        alt={lightbox.currentAlt}
+        onClose={lightbox.close}
+        onPrev={lightbox.images.length > 1 ? lightbox.prev : undefined}
+        onNext={lightbox.images.length > 1 ? lightbox.next : undefined}
+        hasPrev={lightbox.currentIndex > 0}
+        hasNext={lightbox.currentIndex < lightbox.images.length - 1}
       />
-    </div>
+    </Fragment>
   );
 }
 
