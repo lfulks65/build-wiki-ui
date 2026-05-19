@@ -3,5 +3,5 @@ import PageViewer from "@/components/PageViewer";
 
 export function PageViewerRoute(): React.ReactElement {
   const { slug } = useParams<{ slug: string }>();
-  return <PageViewer pageTitle={slug || ""} />;
+  return <PageViewer pageTitle={slug || ""} pageSlug={slug || ""} />;
 }
