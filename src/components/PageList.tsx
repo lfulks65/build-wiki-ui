@@ -10,8 +10,11 @@ import {
   FileText,
 } from 'lucide-react';
 import { PageListItem } from './PageListItem';
+import { TagFilter } from './TagFilter';
+import { TagBadge } from './TagBadge';
 import { Skeleton } from './Skeleton';
-import type { WikiPage, SortOption, SortDirection } from '../types/wiki';
+import { getAllTags, filterPagesByTags } from '@/utils/tags';
+import type { WikiPage, SortOption, SortDirection } from '../types/tags';
 
 interface PageListProps {
   pages?: WikiPage[];
@@ -28,7 +31,7 @@ const SORT_LABELS: Record<SortOption, string> = {
 };
 
 /**
- * Page list component with sorting, filtering, loading, empty, and error states.
+ * Page list component with sorting, filtering, tag filtering, loading, empty, and error states.
  */
 export function PageList({
   pages = [],
@@ -41,10 +44,35 @@ export function PageList({
   const [sortOption, setSortOption] = useState<SortOption>('modified');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [showSortMenu, setShowSortMenu] = useState(false);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+
+  // Get available tags from pages
+  const availableTags = useMemo(
+    () => getAllTags(pages),
+    [pages]
+  );
+
+  // Toggle a tag selection
+  const handleTagSelect = useCallback((slug: string) => {
+    setSelectedTags((prev) =>
+      prev.includes(slug)
+        ? prev.filter((t) => t !== slug)
+        : [...prev, slug]
+    );
+  }, []);
+
+  const handleClearTags = useCallback(() => {
+    setSelectedTags([]);
+  }, []);
 
   // Sort + filter
   const filteredAndSorted = useMemo(() => {
     let result = [...pages];
+
+    // Filter by selected tags
+    if (selectedTags.length > 0) {
+      result = filterPagesByTags(result, selectedTags);
+    }
 
     // Filter by search query
     if (searchQuery.trim()) {
@@ -78,7 +106,7 @@ export function PageList({
     });
 
     return result;
-  }, [pages, searchQuery, sortOption, sortDirection]);
+  }, [pages, searchQuery, sortOption, sortDirection, selectedTags]);
 
   const handleToggleSortDirection = useCallback(() => {
     setSortDirection((d) => (d === 'asc' ? 'desc' : 'asc'));
@@ -257,15 +285,23 @@ export function PageList({
         </div>
       </div>
 
+      {/* Tag filter bar */}
+      {availableTags.length > 0 && (
+        <TagFilter
+          availableTags={availableTags}
+          selectedTags={selectedTags}
+          onSelect={handleTagSelect}
+          onClear={selectedTags.length > 0 ? handleClearTags : undefined}
+        />
+      )}
+
       {/* Filtered result count */}
-      {searchQuery && (
+      {(searchQuery || selectedTags.length > 0) && (
         <p className="text-xs text-gray-500 dark:text-gray-400">
           {filteredAndSorted.length} result
-          {filteredAndSorted.length !== 1 ? 's' : ''} for "
-          <span className="font-medium text-gray-700 dark:text-gray-300">
-            {searchQuery}
-          </span>
-          "
+          {filteredAndSorted.length !== 1 ? 's' : ''}
+          {searchQuery && ` for "${searchQuery}"`}
+          {selectedTags.length > 0 && ` with ${selectedTags.length} tag${selectedTags.length !== 1 ? 's' : ''}`}
         </p>
       )}
 
@@ -274,7 +310,7 @@ export function PageList({
         <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-gray-300 py-12 text-center dark:border-gray-600">
           <Search className="mb-2 h-6 w-6 text-gray-400" />
           <p className="text-sm text-gray-600 dark:text-gray-400">
-            No pages match your search
+            No pages match your filters
           </p>
         </div>
       ) : (
@@ -286,6 +322,7 @@ export function PageList({
               path={page.path}
               modified={page.modified}
               snippet={page.snippet}
+              tags={page.tags}
               onClick={() => handleNavigate(`/pages/${page.slug}`)}
               onEdit={() => handleEdit(page.slug)}
             />

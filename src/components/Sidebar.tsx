@@ -10,6 +10,7 @@ import {
   ChevronRight,
   Menu,
   Star,
+  Tag,
 } from "lucide-react";
 import { useFavorites } from "@/hooks/useFavorites";
 import { FavoritesList } from "@/components/FavoritesList";
@@ -32,6 +33,7 @@ const defaultNavItems: NavItem[] = [
   { label: "Pages", path: "/pages", icon: BookOpen },
   { label: "Assets", path: "/assets", icon: Folder },
   { label: "Search", path: "/search", icon: Search },
+  { label: "Tags", path: "/tags", icon: Tag },
   { label: "Curator", path: "/curator", icon: Bot },
   { label: "Settings", path: "/settings", icon: Settings },
 ];
@@ -123,7 +125,7 @@ export function Sidebar({ navItems = defaultNavItems }: SidebarProps): React.Rea
                   <Tooltip show={collapsed}>
                     <NavLink
                       to={item.path}
-                      end={item.path === "/pages" || item.path === "/search" || item.path === "/assets" || item.path === "/curator" || item.path === "/settings"}
+                      end={item.path === "/pages" || item.path === "/search" || item.path === "/assets" || item.path === "/curator" || item.path === "/settings" || item.path === "/tags"}
                       className={({ isActive }) =>
                         [
                           "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-150",
