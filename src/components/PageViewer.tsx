@@ -1,6 +1,8 @@
-import { useState, useEffect } from 'react';
-import { Star } from 'lucide-react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { Star, Tag } from 'lucide-react';
 import { useFavorites } from '@/hooks/useFavorites';
+import { extractTagsFromFrontmatter, slugifyTag, humanizeTag, tagColor } from '@/utils/tags';
+import { TagBadge } from '@/components/TagBadge';
 import MarkdownRenderer from './MarkdownRenderer';
 
 /* ── Types ─────────────────────────────────────────────────────────── */
@@ -14,6 +16,7 @@ interface PageContent {
   content: string;
   loading: boolean;
   error: string | null;
+  isEmpty?: boolean;
 }
 
 /* ── Helpers ───────────────────────────────────────────────────────── */
@@ -196,6 +199,39 @@ function EmptyState() {
 }
 
 /**
+ * Tag badges row extracted from page frontmatter.
+ */
+function TagsRow({ content }: { content: string }) {
+  const tags = useMemo(() => {
+    return extractTagsFromFrontmatter(content);
+  }, [content]);
+
+  if (tags.length === 0) return null;
+
+  return (
+    <div className="flex flex-wrap items-center gap-2 mb-4">
+      {tags.map((tag) => {
+        const slug = slugifyTag(tag);
+        const name = humanizeTag(slug);
+        const color = tagColor(slug);
+        return (
+          <TagBadge
+            key={slug}
+            tag={slug}
+            size="sm"
+            onClick={() => {
+              // Navigate to tag page — use history API for SPA routing
+              const { history } = window;
+              history.pushState(null, '', `/tags/${slug}`);
+            }}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
+/**
  * Page title header with favorite toggle.
  */
 function PageHeader({ title, slug }: { title: string; slug?: string }) {
@@ -261,7 +297,7 @@ export default function PageViewer({ pageTitle, pageSlug }: PageViewerProps) {
     error: null,
   });
 
-  const fetchContent = () => {
+  const fetchContent = useCallback(() => {
     setPageContent({ content: '', loading: true, error: null });
 
     fetchPageContent(pageTitle)
@@ -279,11 +315,11 @@ export default function PageViewer({ pageTitle, pageSlug }: PageViewerProps) {
           error: err instanceof Error ? err.message : 'An unexpected error occurred',
         });
       });
-  };
+  }, [pageTitle]);
 
   useEffect(() => {
     fetchContent();
-  }, [pageTitle]);
+  }, [fetchContent]);
 
   if (pageContent.loading) {
     return <LoadingSkeleton />;
@@ -300,6 +336,7 @@ export default function PageViewer({ pageTitle, pageSlug }: PageViewerProps) {
   return (
     <div className="w-full">
       <PageHeader title={pageTitle} slug={pageSlug} />
+      <TagsRow content={pageContent.content} />
       <MarkdownRenderer content={pageContent.content} className="w-full" />
     </div>
   );
