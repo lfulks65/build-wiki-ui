@@ -1,4 +1,5 @@
 import { useLocation } from "react-router-dom";
+import { ConnectionStatus } from "@/components/ConnectionStatus";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 
@@ -45,8 +46,9 @@ export function Header({ title }: HeaderProps): React.ReactElement {
         {/* Spacer */}
         <div className="flex-1" />
 
-        {/* Right: theme toggle + Tauri controls */}
+        {/* Right: connection status + theme toggle + Tauri controls */}
         <div className="flex items-center gap-2">
+          <ConnectionStatus />
           <ThemeToggle />
 
           {/* Tauri window controls spacer — visible only in Tauri */}
