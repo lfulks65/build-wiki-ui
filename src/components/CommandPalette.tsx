@@ -10,7 +10,6 @@ import {
 import CommandPaletteItem from './CommandPaletteItem';
 import { useCommandPalette } from '../hooks/useCommandPalette';
 import { usePages } from '../hooks/useApiQuery';
-import { useRelativeTime } from '../hooks/useRelativeTime';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -25,6 +24,28 @@ interface CommandItem {
   shortcut?: string;
   /** The action to perform when selected. */
   onSelect: () => void;
+}
+
+/**
+ * Format a date string into a relative time label (e.g. "2 hours ago").
+ * This is a pure-function replacement for useRelativeTime, which cannot
+ * be called inside useMemo (rules of hooks).
+ */
+function formatRelativeTime(dateStr: string): string {
+  const now = new Date();
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return '';
+  let diffMs = now.getTime() - date.getTime();
+  if (diffMs < 0) return 'just now';
+
+  const diffSec = Math.floor(diffMs / 1000);
+  const diffMin = Math.floor(diffSec / 60);
+  const diffHr = Math.floor(diffMin / 60);
+  const diffDay = Math.floor(diffHr / 24);
+
+  if (diffMin < 60) return diffMin === 1 ? '1m' : `${diffMin}m`;
+  if (diffHr < 24) return diffHr === 1 ? '1h' : `${diffHr}h`;
+  return diffDay === 1 ? '1d' : `${diffDay}d`;
 }
 
 // ---------------------------------------------------------------------------
@@ -84,15 +105,16 @@ export default function CommandPalette() {
     ];
 
     // Dynamic page items from the API
+    // NOTE: We use a pure function (formatRelativeTime) instead of the
+    // useRelativeTime hook, because hooks cannot be called inside useMemo.
     const pageItems: CommandItem[] = (pages ?? []).map((page) => {
-      const relative = useRelativeTime(page.modified);
       return {
         id: `page-${page.path}`,
         section: 'pages',
         icon: FileText,
         title: page.title,
         subtitle: page.path,
-        shortcut: relative,
+        shortcut: formatRelativeTime(page.modified),
         onSelect: () => {
           const slug = page.path.replace(/\.md$/, '').replace(/\//g, '-');
           window.location.href = `/pages/${slug}`;
