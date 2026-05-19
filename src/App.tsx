@@ -10,7 +10,6 @@ import { TagPage } from "@/components/TagPage";
 import { FavoritesPage } from "@/components/FavoritesPage";
 import CuratorDashboard from "@/components/CuratorDashboard";
 import { Settings } from "@/pages/Settings";
-import { FavoritesPage } from "@/components/FavoritesPage";
 import { BacklinksPage } from "@/components/BacklinksPage";
 
 export default function App() {
@@ -29,7 +28,6 @@ export default function App() {
         <Route path="favorites" element={<FavoritesPage />} />
         <Route path="curator" element={<CuratorDashboard />} />
         <Route path="settings" element={<Settings />} />
-        <Route path="favorites" element={<FavoritesPage />} />
       </Route>
     </Routes>
   );
