@@ -15,6 +15,12 @@ import type {
   VaultInfo,
   SearchResult,
   CuratorStatus,
+  QueueJob,
+  RunningJob,
+  OrganizeStatus,
+  CuratorLogEntry,
+  CuratorLogResponse,
+  EnqueueResult,
 } from "./tauri-api";
 
 // ---------------------------------------------------------------------------
@@ -77,8 +83,26 @@ const ASSETS: AssetSummary[] = [
   { id: "a5", filename: "release-notes.pdf", type: "pdf", status: "complete" },
 ];
 
+/** Generate a realistic asset filename from an asset id. */
+function assetFileName(assetId: string): string {
+  const names = [
+    "Q4_Earnings_Deck.pdf",
+    "product-roadmap-2026.png",
+    "api-docs-migration.md",
+    "meeting-notes-5-18.mp3",
+    "feature-spec-auth.md",
+    "architecture-diagram.svg",
+    "user-research-findings.pptx",
+    "security-audit-report.pdf",
+    "sprint-retrospective.docx",
+    "design-system-v2.fig",
+  ];
+  const idx = parseInt(assetId.slice(-2), 16) % names.length;
+  return names[idx] || `asset-${assetId}.md`;
+}
+
 // ---------------------------------------------------------------------------
-// API implementations
+// API implementations — legacy commands
 // ---------------------------------------------------------------------------
 
 export function getVaultInfo(): Promise<VaultInfo> {
@@ -105,7 +129,6 @@ export function readPage(path: string): Promise<string> {
 }
 
 export function writePage(_path: string, _content: string): Promise<void> {
-  // In mock mode writes are a no-op (or could mutate the in-memory mock data)
   return delay(300).then((): void => {});
 }
 
@@ -150,4 +173,203 @@ export function getCuratorStatus(): Promise<CuratorStatus> {
 
 export function enqueueCurator(_assetId: string): Promise<void> {
   return delay(400).then((): void => {});
+}
+
+// ---------------------------------------------------------------------------
+// Curator Dashboard mock implementations
+// ---------------------------------------------------------------------------
+
+/** Generate mock queue jobs. */
+function generateQueueJobs(): { queued: QueueJob[]; running: RunningJob[]; done: QueueJob[]; failed: QueueJob[] } {
+  const now = Date.now();
+  const queued: QueueJob[] = [
+    {
+      jobId: "ingest-a4-1715200512345-0",
+      kind: "ingest",
+      subject: "a4",
+      enqueuedAt: new Date(now - 300_000).toISOString(),
+      startedAt: null,
+      finishedAt: null,
+      lastError: null,
+      attempts: 0,
+    },
+    {
+      jobId: "ingest-001-1715200513000-0",
+      kind: "ingest",
+      subject: "a4",
+      enqueuedAt: new Date(now - 60_000).toISOString(),
+      startedAt: null,
+      finishedAt: null,
+      lastError: null,
+      attempts: 0,
+    },
+  ];
+
+  const running: RunningJob[] = [
+    {
+      job: {
+        jobId: "ingest-a3-1715200514000-0",
+        kind: "ingest",
+        subject: "a3",
+        enqueuedAt: new Date(now - 120_000).toISOString(),
+        startedAt: new Date(now - 60_000).toISOString(),
+        finishedAt: null,
+        lastError: null,
+        attempts: 1,
+      },
+      instance: "wiki-12345-1715200513000",
+    },
+  ];
+
+  const done: QueueJob[] = [
+    {
+      jobId: "ingest-a1-1715200500000-0",
+      kind: "ingest",
+      subject: "a1",
+      enqueuedAt: new Date(now - 7200_000).toISOString(),
+      startedAt: new Date(now - 7200_000).toISOString(),
+      finishedAt: new Date(now - 7060_000).toISOString(),
+      lastError: null,
+      attempts: 1,
+    },
+    {
+      jobId: "ingest-a5-1715200480000-0",
+      kind: "ingest",
+      subject: "a5",
+      enqueuedAt: new Date(now - 10800_000).toISOString(),
+      startedAt: new Date(now - 10800_000).toISOString(),
+      finishedAt: new Date(now - 10700_000).toISOString(),
+      lastError: null,
+      attempts: 1,
+    },
+    {
+      jobId: "ingest-002-1715200460000-0",
+      kind: "ingest",
+      subject: "a2",
+      enqueuedAt: new Date(now - 14400_000).toISOString(),
+      startedAt: new Date(now - 14400_000).toISOString(),
+      finishedAt: new Date(now - 14300_000).toISOString(),
+      lastError: null,
+      attempts: 1,
+    },
+  ];
+
+  const failed: QueueJob[] = [
+    {
+      jobId: "ingest-003-1715200440000-0",
+      kind: "ingest",
+      subject: "a3",
+      enqueuedAt: new Date(now - 18000_000).toISOString(),
+      startedAt: new Date(now - 18000_000).toISOString(),
+      finishedAt: new Date(now - 17955_000).toISOString(),
+      lastError: "Transcription service returned HTTP 502",
+      attempts: 2,
+    },
+  ];
+
+  return { queued, running, done, failed };
+}
+
+/** Generate mock curator log entries. */
+function generateCuratorLog(totalEntries: number): CuratorLogEntry[] {
+  const models = ["gpt-4o", "claude-sonnet-4", "gemini-pro"];
+  const loopNames = ["ingest", "writeback"];
+  const rationales = [
+    "Generated 3 pages from PDF content with proper headings.",
+    "No significant edits needed — content already well-structured.",
+    "Updated existing page with new information, corrected links.",
+    "Transcription complete; generated glossary and index pages.",
+    "Batch cap hit after 50 edits — will continue in next loop.",
+  ];
+
+  const entries: CuratorLogEntry[] = [];
+  const now = Math.floor(Date.now() / 1000);
+  for (let i = 0; i < totalEntries; i++) {
+    const duration = 20 + Math.floor(Math.random() * 180);
+    entries.push({
+      runId: `r-${Date.now() - i * 300_000}`,
+      loopName: loopNames[i % loopNames.length],
+      assetId: `asset-${String(i).padStart(2, "0")}`,
+      model: models[i % models.length],
+      startedAt: now - i * 3600,
+      finishedAt: now - i * 3600 + duration,
+      editsApplied: Math.floor(Math.random() * 50),
+      batchCapped: i % 7 === 0,
+      rationale: rationales[i % rationales.length],
+      tokensUsed: {
+        promptTokens: Math.floor(500 + Math.random() * 4500),
+        completionTokens: Math.floor(200 + Math.random() * 2000),
+        cachedPromptTokens: Math.floor(Math.random() * 2000),
+      },
+    });
+  }
+  return entries;
+}
+
+export function organizeStatus(): Promise<OrganizeStatus> {
+  return delay(300).then((): OrganizeStatus => {
+    const jobs = generateQueueJobs();
+    return {
+      queued: jobs.queued,
+      running: jobs.running,
+      done: jobs.done,
+      failed: jobs.failed,
+      pid: 12345,
+      logPath: "/Users/dev/wiki/.wiki/cache/jobs/worker.log",
+      queueDepth: jobs.queued.length,
+    };
+  });
+}
+
+export function curatorLog(
+  limit: number = 20,
+  offset: number = 0
+): Promise<CuratorLogResponse> {
+  return delay(300).then((): CuratorLogResponse => {
+    const allEntries = generateCuratorLog(80);
+    const sliced = allEntries.slice(offset, offset + limit);
+    return {
+      total: allEntries.length,
+      entries: sliced,
+      offset,
+      limit,
+    };
+  });
+}
+
+let _workerRunning = false;
+
+export function workerStart(): Promise<number> {
+  return delay(500).then((): number => {
+    _workerRunning = true;
+    return 54321;
+  });
+}
+
+export function workerStop(): Promise<boolean> {
+  return delay(500).then((): boolean => {
+    _workerRunning = false;
+    return true;
+  });
+}
+
+export function organizeEnqueue(assetId: string): Promise<EnqueueResult> {
+  return delay(400).then((): EnqueueResult => {
+    return {
+      jobId: `ingest-${assetId}-${Date.now()}-0`,
+      fresh: true,
+    };
+  });
+}
+
+export function organizeEnqueueAll(): Promise<number> {
+  return delay(600).then((): number => {
+    return 3; // mock: enqueued 3 assets
+  });
+}
+
+export function organizeIngestFile(_filePath: string): Promise<string> {
+  return delay(500).then((): string => {
+    return `import-${Date.now()}-0`;
+  });
 }

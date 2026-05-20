@@ -70,6 +70,104 @@ export interface CuratorStatus {
 }
 
 // ---------------------------------------------------------------------------
+// Curator Dashboard types
+// ---------------------------------------------------------------------------
+
+/** A single job in the worker queue (queued, running, done, failed). */
+export interface QueueJob {
+  /** Unique job identifier. */
+  jobId: string;
+  /** Kind of job (`ingest` or `import`). */
+  kind: string;
+  /** Subject identifier (asset ID or display name). */
+  subject: string;
+  /** Enqueued-at timestamp (ISO-8601). */
+  enqueuedAt: string | null;
+  /** Started-at timestamp (ISO-8601), or `null` if not started. */
+  startedAt: string | null;
+  /** Finished-at timestamp (ISO-8601), or `null` if not finished. */
+  finishedAt: string | null;
+  /** Last error message, if the job failed. */
+  lastError: string | null;
+  /** Number of retry attempts made. */
+  attempts: number;
+}
+
+/** A job that is currently being processed by a worker instance. */
+export interface RunningJob {
+  /** The job record. */
+  job: QueueJob;
+  /** Worker instance ID processing this job. */
+  instance: string;
+}
+
+/** Full snapshot of the job queue state. */
+export interface OrganizeStatus {
+  /** Jobs waiting in the queue. */
+  queued: QueueJob[];
+  /** Jobs currently being processed. */
+  running: RunningJob[];
+  /** Recently completed jobs (most recent first). */
+  done: QueueJob[];
+  /** Recently failed jobs (most recent first). */
+  failed: QueueJob[];
+  /** Worker process ID, or `null` if not running. */
+  pid: number | null;
+  /** Path to the worker log file. */
+  logPath: string;
+  /** Number of queued jobs (convenience alias). */
+  queueDepth: number;
+}
+
+/** A single curator log entry from the JSONL log. */
+export interface CuratorLogEntry {
+  /** Unique run identifier. */
+  runId: string;
+  /** Loop name (e.g. `ingest`, `writeback`). */
+  loopName: string;
+  /** Asset ID, if applicable. */
+  assetId: string | null;
+  /** Model used for this run. */
+  model: string | null;
+  /** Start timestamp (Unix epoch seconds). */
+  startedAt: number;
+  /** Finish timestamp (Unix epoch seconds). */
+  finishedAt: number;
+  /** Number of edits applied. */
+  editsApplied: number;
+  /** Whether the batch cap was hit. */
+  batchCapped: boolean;
+  /** Model-generated rationale. */
+  rationale: string;
+  /** Token usage breakdown. */
+  tokensUsed: {
+    promptTokens: number;
+    completionTokens: number;
+    cachedPromptTokens: number;
+  };
+}
+
+/** Paginated response for curator log history. */
+export interface CuratorLogResponse {
+  /** Total number of log entries. */
+  total: number;
+  /** Entries for the current page (newest first). */
+  entries: CuratorLogEntry[];
+  /** Offset used for this page. */
+  offset: number;
+  /** Number of entries per page. */
+  limit: number;
+}
+
+/** Outcome of an enqueue operation. */
+export interface EnqueueResult {
+  /** The job ID that was created or returned. */
+  jobId: string;
+  /** Whether this was a new enqueue or an existing pending job. */
+  fresh: boolean;
+}
+
+// ---------------------------------------------------------------------------
 // Client functions — each calls `invoke<T>()` against a Tauri command
 // ---------------------------------------------------------------------------
 
@@ -140,4 +238,72 @@ export function getCuratorStatus(): Promise<CuratorStatus> {
  */
 export function enqueueCurator(assetId: string): Promise<void> {
   return invoke("enqueue_curator", { assetId });
+}
+
+// ---------------------------------------------------------------------------
+// Curator Dashboard commands
+// ---------------------------------------------------------------------------
+
+/**
+ * Get full job queue status including worker PID, log path, and recent jobs.
+ * @returns Full `OrganizeStatus` snapshot.
+ */
+export function organizeStatus(): Promise<OrganizeStatus> {
+  return invoke("organize_status");
+}
+
+/**
+ * Retrieve curator log entries with pagination.
+ * @param limit — Number of entries to return (default 20).
+ * @param offset — Pagination offset (default 0).
+ * @returns Paginated `CuratorLogResponse`.
+ */
+export function curatorLog(
+  limit: number = 20,
+  offset: number = 0
+): Promise<CuratorLogResponse> {
+  return invoke("curator_log", { limit, offset });
+}
+
+/**
+ * Start (or resume) the curator worker.
+ * Spawns a detached worker process if one is not already running.
+ * @returns The PID of the (new or existing) worker process.
+ */
+export function workerStart(): Promise<number> {
+  return invoke("worker_start");
+}
+
+/**
+ * Stop the running curator worker by sending it a termination signal.
+ * @returns `true` if the worker was stopped, `false` if it wasn't running.
+ */
+export function workerStop(): Promise<boolean> {
+  return invoke("worker_stop");
+}
+
+/**
+ * Enqueue a single asset for processing.
+ * @param assetId — The asset identifier to enqueue.
+ * @returns The enqueue result (job ID and whether it was fresh).
+ */
+export function organizeEnqueue(assetId: string): Promise<EnqueueResult> {
+  return invoke("organize_enqueue", { assetId });
+}
+
+/**
+ * Enqueue all pending (unorganized) assets at once.
+ * @returns Number of jobs enqueued.
+ */
+export function organizeEnqueueAll(): Promise<number> {
+  return invoke("organize_enqueue_all");
+}
+
+/**
+ * Enqueue a raw file from the inbox for import (simulates file picker).
+ * @param filePath — Path to the file to ingest.
+ * @returns The job ID of the import job.
+ */
+export function organizeIngestFile(filePath: string): Promise<string> {
+  return invoke("organize_ingest_file", { filePath });
 }

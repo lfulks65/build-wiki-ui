@@ -49,10 +49,18 @@ import {
   listPages,
   listAssets,
   getCuratorStatus,
+  organizeStatus,
+  curatorLog,
+  workerStart,
+  workerStop,
+  organizeEnqueue,
+  organizeEnqueueAll,
   type VaultInfo,
   type PageSummary,
   type AssetSummary,
   type CuratorStatus,
+  type OrganizeStatus,
+  type CuratorLogResponse,
 } from "../lib/api";
 
 /** Hook for vault metadata. */
@@ -73,4 +81,47 @@ export function useAssets(options?: Omit<UseQueryOptions<AssetSummary[]>, "query
 /** Hook for the curator status. */
 export function useCuratorStatus(options?: Omit<UseQueryOptions<CuratorStatus>, "queryKey" | "queryFn">) {
   return useApiQuery<CuratorStatus>(["curator-status"], getCuratorStatus, options);
+}
+
+/**
+ * Hook for the full organize/job-queue status.
+ * @param refetchIntervalMs — Polling interval in ms (default: 10_000 = 10s).
+ */
+export function useOrganizeStatus(options?: Omit<
+  UseQueryOptions<OrganizeStatus>,
+  "queryKey" | "queryFn"
+> & { refetchIntervalMs?: number }) {
+  const { refetchIntervalMs = 10_000, ...rest } = options ?? {};
+  return useApiQuery<OrganizeStatus>(
+    ["organize-status"],
+    organizeStatus,
+    {
+      staleTime: 5_000, // Consider stale after 5s since polling is faster
+      refetchInterval: refetchIntervalMs,
+      ...rest,
+    }
+  );
+}
+
+/**
+ * Hook for paginated curator log entries.
+ * @param offset — Pagination offset (default 0).
+ * @param limit  — Number of entries per page (default 20).
+ */
+export function useCuratorLog(
+  offset: number = 0,
+  limit: number = 20,
+  options?: Omit<
+    UseQueryOptions<CuratorLogResponse>,
+    "queryKey" | "queryFn"
+  >
+) {
+  return useApiQuery<CuratorLogResponse>(
+    ["curator-log", offset, limit],
+    () => curatorLog(limit, offset),
+    {
+      staleTime: 10_000,
+      ...options,
+    }
+  );
 }

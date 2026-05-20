@@ -39,6 +39,12 @@ export type {
   VaultInfo,
   SearchResult,
   CuratorStatus,
+  QueueJob,
+  RunningJob,
+  OrganizeStatus,
+  CuratorLogEntry,
+  CuratorLogResponse,
+  EnqueueResult,
 } from "./tauri-api";
 
 // ---------------------------------------------------------------------------
@@ -54,6 +60,13 @@ import {
   listAssets as tauriListAssets,
   getCuratorStatus as tauriGetCuratorStatus,
   enqueueCurator as tauriEnqueueCurator,
+  organizeStatus as tauriOrganizeStatus,
+  curatorLog as tauriCuratorLog,
+  workerStart as tauriWorkerStart,
+  workerStop as tauriWorkerStop,
+  organizeEnqueue as tauriOrganizeEnqueue,
+  organizeEnqueueAll as tauriOrganizeEnqueueAll,
+  organizeIngestFile as tauriOrganizeIngestFile,
 } from "./tauri-api";
 
 import {
@@ -65,6 +78,13 @@ import {
   listAssets as mockListAssets,
   getCuratorStatus as mockGetCuratorStatus,
   enqueueCurator as mockEnqueueCurator,
+  organizeStatus as mockOrganizeStatus,
+  curatorLog as mockCuratorLog,
+  workerStart as mockWorkerStart,
+  workerStop as mockWorkerStop,
+  organizeEnqueue as mockOrganizeEnqueue,
+  organizeEnqueueAll as mockOrganizeEnqueueAll,
+  organizeIngestFile as mockOrganizeIngestFile,
 } from "./mock-api";
 
 /** `true` in dev/browser mode → use mock functions. */
@@ -86,3 +106,18 @@ export const listAssets = _useMock ? mockListAssets : tauriListAssets;
 export const getCuratorStatus = _useMock ? mockGetCuratorStatus : tauriGetCuratorStatus;
 /** Enqueue an asset for the curator. */
 export const enqueueCurator = _useMock ? mockEnqueueCurator : tauriEnqueueCurator;
+
+/** Get full job queue status. */
+export const organizeStatus = _useMock ? mockOrganizeStatus : tauriOrganizeStatus;
+/** Retrieve paginated curator log entries. */
+export const curatorLog = _useMock ? mockCuratorLog : tauriCuratorLog;
+/** Start the curator worker. */
+export const workerStart = _useMock ? mockWorkerStart : tauriWorkerStart;
+/** Stop the curator worker. */
+export const workerStop = _useMock ? mockWorkerStop : tauriWorkerStop;
+/** Enqueue a single asset. */
+export const organizeEnqueue = _useMock ? mockOrganizeEnqueue : tauriOrganizeEnqueue;
+/** Enqueue all pending assets. */
+export const organizeEnqueueAll = _useMock ? mockOrganizeEnqueueAll : tauriOrganizeEnqueueAll;
+/** Ingest a file from the filesystem. */
+export const organizeIngestFile = _useMock ? mockOrganizeIngestFile : tauriOrganizeIngestFile;
