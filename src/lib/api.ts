@@ -37,8 +37,16 @@ export type {
   PageSummary,
   AssetSummary,
   VaultInfo,
+  VaultRegistryEntry,
   SearchResult,
   CuratorStatus,
+  VaultHealth,
+  WorkerStatus,
+  DiskUsage,
+  LogError,
+  OrganizeStatus,
+  ApiKeyEntry,
+  SystemStatus,
 } from "./tauri-api";
 
 // ---------------------------------------------------------------------------
@@ -54,6 +62,23 @@ import {
   listAssets as tauriListAssets,
   getCuratorStatus as tauriGetCuratorStatus,
   enqueueCurator as tauriEnqueueCurator,
+  listVaults as tauriListVaults,
+  initVault as tauriInitVault,
+  cloneVault as tauriCloneVault,
+  setDefaultVault as tauriSetDefaultVault,
+  removeVault as tauriRemoveVault,
+  openVault as tauriOpenVault,
+  getVaultHealth as tauriGetVaultHealth,
+  listApiKeys as tauriListApiKeys,
+  getApiKey as tauriGetApiKey,
+  setApiKey as tauriSetApiKey,
+  deleteApiKey as tauriDeleteApiKey,
+  testApiKeyConnection as tauriTestApiKeyConnection,
+  getSystemStatus as tauriGetSystemStatus,
+  indexRebuild as tauriIndexRebuild,
+  lintVault as tauriLintVault,
+  organizeStatus as tauriOrganizeStatus,
+  clearCache as tauriClearCache,
 } from "./tauri-api";
 
 import {
@@ -65,6 +90,23 @@ import {
   listAssets as mockListAssets,
   getCuratorStatus as mockGetCuratorStatus,
   enqueueCurator as mockEnqueueCurator,
+  listVaults as mockListVaults,
+  initVault as mockInitVault,
+  cloneVault as mockCloneVault,
+  setDefaultVault as mockSetDefaultVault,
+  removeVault as mockRemoveVault,
+  openVault as mockOpenVault,
+  getVaultHealth as mockGetVaultHealth,
+  listApiKeys as mockListApiKeys,
+  getApiKey as mockGetApiKey,
+  setApiKey as mockSetApiKey,
+  deleteApiKey as mockDeleteApiKey,
+  testApiKeyConnection as mockTestApiKeyConnection,
+  getSystemStatus as mockGetSystemStatus,
+  indexRebuild as mockIndexRebuild,
+  lintVault as mockLintVault,
+  organizeStatus as mockOrganizeStatus,
+  clearCache as mockClearCache,
 } from "./mock-api";
 
 /** `true` in dev/browser mode → use mock functions. */
@@ -86,3 +128,26 @@ export const listAssets = _useMock ? mockListAssets : tauriListAssets;
 export const getCuratorStatus = _useMock ? mockGetCuratorStatus : tauriGetCuratorStatus;
 /** Enqueue an asset for the curator. */
 export const enqueueCurator = _useMock ? mockEnqueueCurator : tauriEnqueueCurator;
+
+// Vault management
+export const listVaults = _useMock ? mockListVaults : tauriListVaults;
+export const initVault = _useMock ? mockInitVault : tauriInitVault;
+export const cloneVault = _useMock ? mockCloneVault : tauriCloneVault;
+export const setDefaultVault = _useMock ? mockSetDefaultVault : tauriSetDefaultVault;
+export const removeVault = _useMock ? mockRemoveVault : tauriRemoveVault;
+export const openVault = _useMock ? mockOpenVault : tauriOpenVault;
+export const getVaultHealth = _useMock ? mockGetVaultHealth : tauriGetVaultHealth;
+
+// API key management
+export const listApiKeys = _useMock ? mockListApiKeys : tauriListApiKeys;
+export const getApiKey = _useMock ? mockGetApiKey : tauriGetApiKey;
+export const setApiKey = _useMock ? mockSetApiKey : tauriSetApiKey;
+export const deleteApiKey = _useMock ? mockDeleteApiKey : tauriDeleteApiKey;
+export const testApiKeyConnection = _useMock ? mockTestApiKeyConnection : tauriTestApiKeyConnection;
+
+// System status
+export const getSystemStatus = _useMock ? mockGetSystemStatus : tauriGetSystemStatus;
+export const indexRebuild = _useMock ? mockIndexRebuild : tauriIndexRebuild;
+export const lintVault = _useMock ? mockLintVault : tauriLintVault;
+export const organizeStatus = _useMock ? mockOrganizeStatus : tauriOrganizeStatus;
+export const clearCache = _useMock ? mockClearCache : tauriClearCache;

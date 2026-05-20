@@ -6,6 +6,26 @@ export type ThemeMode = "light" | "dark" | "system";
 export type FontSize = "sm" | "md" | "lg";
 export type EditorMode = "split" | "preview" | "source";
 
+/** Predefined API key configuration types. */
+export const API_KEY_TYPES = [
+  "OPENROUTER_API_KEY",
+  "GROQ_API_KEY",
+  "GEMINI_API_KEY",
+  "AWS_ACCESS_KEY_ID",
+  "AWS_SECRET_ACCESS_KEY",
+] as const;
+
+export type ApiKeyType = (typeof API_KEY_TYPES)[number];
+
+/** Whether an API key type is required. */
+export const REQUIRED_API_KEYS: Record<ApiKeyType, boolean> = {
+  OPENROUTER_API_KEY: false,
+  GROQ_API_KEY: false,
+  GEMINI_API_KEY: false,
+  AWS_ACCESS_KEY_ID: true,
+  AWS_SECRET_ACCESS_KEY: true,
+};
+
 export interface UserSettings {
   theme: ThemeMode;
   fontSize: FontSize;
@@ -18,6 +38,7 @@ export interface UserSettings {
 }
 
 const STORAGE_KEY = "wiki-settings";
+const CONFIG_KEY = "wiki-config";
 
 const DEFAULTS: UserSettings = {
   theme: "system",
@@ -51,6 +72,28 @@ function saveToStorage(settings: UserSettings): void {
   }
 }
 
+/* ── Config helpers (API keys, etc.) ───────────────────────────────── */
+
+/** Load the persisted config section (API keys, etc.). */
+function loadConfig(): Record<string, string> {
+  try {
+    const raw = localStorage.getItem(CONFIG_KEY);
+    if (!raw) return {};
+    return JSON.parse(raw) as Record<string, string>;
+  } catch {
+    return {};
+  }
+}
+
+/** Save the persisted config section. */
+function saveConfig(config: Record<string, string>): void {
+  try {
+    localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
+  } catch {
+    // ignore
+  }
+}
+
 /* ── Hook ──────────────────────────────────────────────────────────── */
 
 /**
@@ -63,11 +106,17 @@ function saveToStorage(settings: UserSettings): void {
  */
 export function useSettings() {
   const [settings, setSettings] = useState<UserSettings>(loadFromStorage);
+  const [config, setConfig] = useState<Record<string, string>>(loadConfig);
 
-  // Persist whenever any setting changes
+  // Persist settings whenever any setting changes
   useEffect(() => {
     saveToStorage(settings);
   }, [settings]);
+
+  // Persist config whenever it changes
+  useEffect(() => {
+    saveConfig(config);
+  }, [config]);
 
   const setTheme = useCallback((theme: ThemeMode) => {
     setSettings((prev) => ({ ...prev, theme }));
@@ -107,6 +156,49 @@ export function useSettings() {
 
   const value = useMemo<UserSettings>(() => settings, [settings]);
 
+  // ── Config helpers ────────────────────────────────────────────────
+
+  /**
+   * Set a configuration value (e.g. an API key).
+   * @param key — Configuration key name.
+   * @param value — Value to store.
+   */
+  const setConfig = useCallback((key: string, value: string) => {
+    setConfigInternal((prev) => ({ ...prev, [key]: value }));
+  }, []);
+
+  /**
+   * Get a configuration value.
+   * @param key — Configuration key name.
+   * @returns The stored value, or empty string if not set.
+   */
+  const getConfig = useCallback((key: string): string => {
+    return config[key] ?? "";
+  }, [config]);
+
+  /**
+   * Delete a configuration value.
+   * @param key — Configuration key name.
+   */
+  const deleteConfig = useCallback((key: string) => {
+    setConfigInternal((prev) => {
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+  }, []);
+
+  /**
+   * Clear all configuration (API keys, etc.).
+   */
+  const clearConfig = useCallback(() => {
+    setConfigInternal({});
+  }, []);
+
+  const setConfigInternal = useCallback((updater: (prev: Record<string, string>) => Record<string, string>) => {
+    setConfig((prev) => updater(prev));
+  }, []);
+
   return {
     settings: value,
     setTheme,
@@ -118,6 +210,11 @@ export function useSettings() {
     toggleShowToc,
     toggleShowBreadcrumbs,
     resetAll,
+    // Config helpers
+    setConfig,
+    getConfig,
+    deleteConfig,
+    clearConfig,
   };
 }
 

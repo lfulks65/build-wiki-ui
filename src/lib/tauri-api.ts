@@ -45,6 +45,26 @@ export interface VaultInfo {
   assetCount: number;
 }
 
+/** A registered vault entry in the vault registry. */
+export interface VaultRegistryEntry {
+  /** Unique registry ID. */
+  id: string;
+  /** Human-readable vault name. */
+  name: string;
+  /** Absolute path to the vault directory. */
+  path: string;
+  /** Git branch (or `null` if not a git repo). */
+  branch: string | null;
+  /** Total number of pages. */
+  pageCount: number;
+  /** Total number of assets. */
+  assetCount: number;
+  /** Whether this vault is the default. */
+  isDefault: boolean;
+  /** Last modified timestamp (ISO-8601). */
+  lastModified: string | null;
+}
+
 /** A single search result from a wiki page. */
 export interface SearchResult {
   /** Page title. */
@@ -67,6 +87,84 @@ export interface CuratorStatus {
   lastRun: string | null;
   /** Number of items in the processing queue. */
   queueDepth: number;
+}
+
+/** Health status of a vault. */
+export interface VaultHealth {
+  /** Whether the vault path exists on disk. */
+  pathExists: boolean;
+  /** Whether the vault is a valid git repository. */
+  gitRepoValid: boolean;
+  /** Whether the search index is up-to-date. */
+  indexUpToDate: boolean;
+  /** Error message if any check failed, or `null`. */
+  error: string | null;
+}
+
+/** Worker status information. */
+export interface WorkerStatus {
+  /** Whether the worker is currently running. */
+  running: boolean;
+  /** Process ID, or `null` if not running. */
+  pid: number | null;
+  /** Uptime in seconds, or `null` if not running. */
+  uptime: number | null;
+  /** Path to the worker log file. */
+  logPath: string | null;
+  /** Current state of the worker. */
+  state: "running" | "idle" | "stopped";
+}
+
+/** Disk usage summary. */
+export interface DiskUsage {
+  /** Total size of vault directories in bytes. */
+  vaultSize: number;
+  /** Total size of the blob store in bytes. */
+  blobSize: number;
+}
+
+/** Recent error entry from the curator log. */
+export interface LogError {
+  /** ISO-8601 timestamp. */
+  timestamp: string;
+  /** Error level (error, warn, etc.). */
+  level: string;
+  /** Error message. */
+  message: string;
+}
+
+/** Organize status — result of the `organizeStatus` command. */
+export interface OrganizeStatus {
+  /** Total files found. */
+  totalFiles: number;
+  /** Files already organized. */
+  organizedCount: number;
+  /** Orphaned files not in any vault. */
+  orphanedCount: number;
+  /** Pending moves. */
+  pendingMoves: number;
+}
+
+/** An API key configuration entry. */
+export interface ApiKeyEntry {
+  /** The key name / identifier (e.g. `OPENROUTER_API_KEY`). */
+  key: string;
+  /** Whether the key has a value set. */
+  hasValue: boolean;
+  /** Whether the key is required. */
+  required: boolean;
+}
+
+/** System status — aggregated health data. */
+export interface SystemStatus {
+  /** Vault health for each registered vault. */
+  vaults: VaultHealth[];
+  /** Worker status. */
+  worker: WorkerStatus;
+  /** Disk usage. */
+  disk: DiskUsage;
+  /** Recent errors from the log. */
+  recentErrors: LogError[];
 }
 
 // ---------------------------------------------------------------------------
@@ -140,4 +238,159 @@ export function getCuratorStatus(): Promise<CuratorStatus> {
  */
 export function enqueueCurator(assetId: string): Promise<void> {
   return invoke("enqueue_curator", { assetId });
+}
+
+// ---------------------------------------------------------------------------
+// Vault Management
+// ---------------------------------------------------------------------------
+
+/**
+ * List all registered vaults from the vault registry.
+ * @returns An array of `VaultRegistryEntry` objects.
+ */
+export function listVaults(): Promise<VaultRegistryEntry[]> {
+  return invoke("list_vaults");
+}
+
+/**
+ * Register a new vault in the registry.
+ * @param name — Human-readable vault name.
+ * @param path — Absolute path to the vault directory.
+ */
+export function initVault(name: string, path: string): Promise<VaultRegistryEntry> {
+  return invoke("init_vault", { name, path });
+}
+
+/**
+ * Clone an existing vault from a git repository.
+ * @param url — Git URL to clone from.
+ * @param localPath — Local path where the vault will be cloned.
+ */
+export function cloneVault(url: string, localPath: string): Promise<VaultRegistryEntry> {
+  return invoke("clone_vault", { url, localPath });
+}
+
+/**
+ * Set a vault as the default (active) vault.
+ * @param vaultId — The registry ID of the vault to set as default.
+ */
+export function setDefaultVault(vaultId: string): Promise<void> {
+  return invoke("set_default_vault", { vaultId });
+}
+
+/**
+ * Remove a vault from the registry (does not delete files on disk).
+ * @param vaultId — The registry ID of the vault to remove.
+ */
+export function removeVault(vaultId: string): Promise<void> {
+  return invoke("remove_vault", { vaultId });
+}
+
+/**
+ * Open a vault in the current session (set as active).
+ * @param vaultId — The registry ID of the vault to open.
+ */
+export function openVault(vaultId: string): Promise<void> {
+  return invoke("open_vault", { vaultId });
+}
+
+/**
+ * Get the health status of a vault.
+ * @param vaultId — The registry ID of the vault.
+ * @returns A `VaultHealth` object.
+ */
+export function getVaultHealth(vaultId: string): Promise<VaultHealth> {
+  return invoke("get_vault_health", { vaultId });
+}
+
+// ---------------------------------------------------------------------------
+// API Key Management
+// ---------------------------------------------------------------------------
+
+/**
+ * Get the list of known API key configuration entries.
+ * @returns An array of `ApiKeyEntry` objects.
+ */
+export function listApiKeys(): Promise<ApiKeyEntry[]> {
+  return invoke("list_api_keys");
+}
+
+/**
+ * Get the current value of an API key (masked by default).
+ * @param key — The key name.
+ * @param full — If `true`, return the full value; if `false`, return masked.
+ * @returns The key value (possibly masked).
+ */
+export function getApiKey(key: string, full?: boolean): Promise<string> {
+  return invoke("get_api_key", { key, full: full ?? false });
+}
+
+/**
+ * Set (or update) an API key value.
+ * @param key — The key name (e.g. `OPENROUTER_API_KEY`).
+ * @param value — The secret value.
+ */
+export function setApiKey(key: string, value: string): Promise<void> {
+  return invoke("set_api_key", { key, value });
+}
+
+/**
+ * Delete (unregister) an API key.
+ * @param key — The key name to delete.
+ */
+export function deleteApiKey(key: string): Promise<void> {
+  return invoke("delete_api_key", { key });
+}
+
+/**
+ * Test the connection for a given API key type.
+ * @param key — The key name to test.
+ * @returns `true` if the connection succeeded.
+ */
+export function testApiKeyConnection(key: string): Promise<boolean> {
+  return invoke("test_api_key_connection", { key });
+}
+
+// ---------------------------------------------------------------------------
+// System Status
+// ---------------------------------------------------------------------------
+
+/**
+ * Get the full system status dashboard data.
+ * @returns A `SystemStatus` object.
+ */
+export function getSystemStatus(): Promise<SystemStatus> {
+  return invoke("get_system_status");
+}
+
+/**
+ * Rebuild the search index for a vault.
+ * @param vaultId — The registry ID of the vault.
+ */
+export function indexRebuild(vaultId: string): Promise<void> {
+  return invoke("index_rebuild", { vaultId });
+}
+
+/**
+ * Run lint checks on a vault.
+ * @param vaultId — The registry ID of the vault.
+ * @returns An array of lint error strings.
+ */
+export function lintVault(vaultId: string): Promise<string[]> {
+  return invoke("lint_vault", { vaultId });
+}
+
+/**
+ * Get the organize / cleanup status.
+ * @returns An `OrganizeStatus` object.
+ */
+export function organizeStatus(): Promise<OrganizeStatus> {
+  return invoke("organize_status");
+}
+
+/**
+ * Clear the application cache.
+ */
+export function clearCache(): Promise<void> {
+  return invoke("clear_cache");
 }

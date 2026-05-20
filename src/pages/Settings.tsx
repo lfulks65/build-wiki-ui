@@ -1,3 +1,11 @@
+/**
+ * Settings — comprehensive configuration center with tab navigation.
+ *
+ * Tabs: General | Vaults | API Keys | System | About
+ *
+ * @module pages/Settings
+ */
+
 import { useState, type ReactNode } from "react";
 import {
   Sun,
@@ -8,18 +16,25 @@ import {
   Code,
   List,
   Rows,
-  Tabs,
-  Save,
-  Columns,
-  PanelTop,
   Trash2,
   RotateCcw,
   Check,
   AlertTriangle,
   CheckCircle2,
   XCircle,
+  Type,
+  Palette,
+  Key,
+  FolderOpen,
+  Activity,
+  Info,
+  ArrowLeft,
+  EyeOff,
 } from "lucide-react";
 import { useSettings } from "@/hooks/useSettings";
+import { VaultManager } from "@/components/VaultManager";
+import { ApiKeyManager } from "@/components/ApiKeyManager";
+import { SystemStatus } from "@/components/SystemStatus";
 
 /* ── Reusable sub-components ───────────────────────────────────────── */
 
@@ -122,9 +137,7 @@ function ConfirmDialog({
   onCancel,
 }: ConfirmDialogProps) {
   if (!open) return null;
-
   const isDanger = variant === "danger";
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <div
@@ -170,7 +183,127 @@ function ConfirmDialog({
   );
 }
 
-/* ── Sections ──────────────────────────────────────────────────────── */
+/* ── Tab types ─────────────────────────────────────────────────────── */
+
+type TabId = "general" | "vaults" | "api-keys" | "system" | "about";
+
+interface TabDef {
+  id: TabId;
+  label: string;
+  icon: typeof Palette;
+  description: string;
+}
+
+const TABS: TabDef[] = [
+  { id: "general", label: "General", icon: Palette, description: "Appearance, editor, and display settings" },
+  { id: "vaults", label: "Vaults", icon: FolderOpen, description: "Manage registered wiki vaults" },
+  { id: "api-keys", label: "API Keys", icon: Key, description: "Configure API keys for integrations" },
+  { id: "system", label: "System", icon: Activity, description: "System health dashboard and actions" },
+  { id: "about", label: "About", icon: Info, description: "Version information and credits" },
+];
+
+/* ── Theme preview thumbnails ──────────────────────────────────────── */
+
+function ThemePreview({ theme }: { theme: string }) {
+  const bg = theme === "dark" ? "bg-gray-900" : theme === "system" ? "bg-gray-100" : "bg-white";
+  const fg = theme === "dark" ? "text-gray-100" : "text-gray-900";
+  const border = theme === "dark" ? "border-gray-700" : "border-gray-200";
+  const accent = theme === "dark" ? "text-indigo-400" : "text-indigo-600";
+  const muted = theme === "dark" ? "text-gray-400" : "text-gray-500";
+
+  return (
+    <div className={`rounded-lg border ${border} ${bg} p-3 shadow-sm`}>
+      <div className={`text-xs font-semibold ${fg}`}>Getting Started</div>
+      <div className={`mt-1 text-[10px] ${muted}`}>How to use your wiki</div>
+      <div className={`mt-2 h-1.5 w-16 rounded-full ${theme === "dark" ? "bg-gray-700" : "bg-gray-200"}`} />
+      <div className={`mt-1 h-1.5 w-12 rounded-full ${theme === "dark" ? "bg-gray-700" : "bg-gray-200"}`} />
+    </div>
+  );
+}
+
+/* ── Editor preview thumbnail ──────────────────────────────────────── */
+
+function EditorPreview({ mode }: { mode: string }) {
+  const isSplit = mode === "split";
+  const isPreview = mode === "preview";
+
+  return (
+    <div className="overflow-hidden rounded-lg border border-gray-200 bg-gray-900 shadow-sm">
+      {/* Title bar */}
+      <div className="flex items-center gap-1.5 border-b border-gray-700 px-3 py-1.5">
+        <div className="h-2.5 w-2.5 rounded-full bg-red-500" />
+        <div className="h-2.5 w-2.5 rounded-full bg-amber-500" />
+        <div className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
+      </div>
+      {/* Content */}
+      <div className="flex h-20">
+        {isSplit && (
+          <div className="w-1/2 border-r border-gray-700 p-2 font-mono text-[8px] text-gray-300">
+            <div className="text-emerald-400"># Heading</div>
+            <div className="mt-1 text-gray-400">Some content here…</div>
+            <div className="mt-1 text-blue-400">*italic*</div>
+          </div>
+        )}
+        {isPreview && (
+          <div className="w-1/2 p-2 font-mono text-[8px] text-gray-300">
+            <div className="text-lg font-bold text-white">Heading</div>
+            <div className="mt-1 text-gray-400">Some content here…</div>
+            <div className="mt-1 italic text-gray-300">italic</div>
+          </div>
+        )}
+        {!isSplit && !isPreview && (
+          <div className="w-full p-2 font-mono text-[8px] text-gray-300">
+            <div className="text-emerald-400"># Heading</div>
+            <div className="mt-1 text-gray-400">Some content here…</div>
+            <div className="mt-1 text-blue-400">*italic*</div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ── Display preview toggles ───────────────────────────────────────── */
+
+function DisplayTogglePreview({ showToc, showBreadcrumbs }: { showToc: boolean; showBreadcrumbs: boolean }) {
+  return (
+    <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-900">
+      {/* Breadcrumbs bar */}
+      <div className="flex items-center gap-1 text-[10px] text-gray-500 dark:text-gray-400">
+        {showBreadcrumbs && (
+          <>
+            <span className="font-medium">Home</span>
+            <span>/</span>
+            <span>Pages</span>
+            <span>/</span>
+            <span className="font-medium text-gray-900 dark:text-gray-100">Article</span>
+          </>
+        )}
+        {!showBreadcrumbs && <span className="text-gray-300 dark:text-gray-600">Breadcrumbs hidden</span>}
+      </div>
+      <div className="mt-2 flex gap-2">
+        {/* Mock page content */}
+        <div className={`flex-1 space-y-1.5 rounded p-2 ${showToc ? "ml-0" : ""}`}>
+          <div className="h-2 w-3/4 rounded bg-gray-300 dark:bg-gray-600" />
+          <div className="h-1.5 w-full rounded bg-gray-200 dark:bg-gray-700" />
+          <div className="h-1.5 w-5/6 rounded bg-gray-200 dark:bg-gray-700" />
+          <div className="h-1.5 w-4/6 rounded bg-gray-200 dark:bg-gray-700" />
+        </div>
+        {/* TOC sidebar */}
+        {showToc && (
+          <div className="w-16 space-y-1 rounded border border-gray-200 bg-white p-1.5 dark:border-gray-600 dark:bg-gray-800">
+            <div className="h-1 w-full rounded bg-indigo-200 dark:bg-indigo-800" />
+            <div className="h-1 w-4/5 rounded bg-gray-200 dark:bg-gray-600" />
+            <div className="h-1 w-3/5 rounded bg-gray-200 dark:bg-gray-600" />
+            <div className="h-1 w-2/3 rounded bg-gray-200 dark:bg-gray-600" />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ── Section components ────────────────────────────────────────────── */
 
 function AppearanceSection() {
   const { settings, setTheme, setFontSize, toggleReducedMotion } = useSettings();
@@ -181,56 +314,62 @@ function AppearanceSection() {
     { value: "system", icon: Monitor, label: "System" },
   ];
 
-  const fontSizes: Array<{ value: typeof settings.fontSize; label: string }> = [
-    { value: "sm", label: "Small" },
-    { value: "md", label: "Medium" },
-    { value: "lg", label: "Large" },
+  const fontSizes: Array<{ value: typeof settings.fontSize; label: string; preview: string }> = [
+    { value: "sm", label: "Small", preview: "Aa" },
+    { value: "md", label: "Medium", preview: "Aa" },
+    { value: "lg", label: "Large", preview: "Aa" },
   ];
 
   return (
-    <section className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
-      <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-gray-100">
-        <Sun size={18} className="text-amber-500" />
-        Appearance
-      </h2>
-
-      {/* Theme selector */}
-      <div className="mb-6">
-        <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+    <section className="space-y-6">
+      {/* Theme selector with preview thumbnails */}
+      <div>
+        <h3 className="mb-3 text-sm font-semibold text-gray-700 dark:text-gray-300">
+          <Palette size={14} className="mr-1 inline text-indigo-500" />
           Theme
-        </label>
+        </h3>
         <div className="grid grid-cols-3 gap-3">
           {themeOptions.map(({ value, icon, label }) => (
-            <RadioCard
-              key={value}
-              selected={settings.theme === value}
-              icon={icon}
-              label={label}
-              onClick={() => setTheme(value)}
-            />
+            <div key={value} className="space-y-2">
+              <RadioCard
+                selected={settings.theme === value}
+                icon={icon}
+                label={label}
+                onClick={() => setTheme(value)}
+              />
+              <ThemePreview theme={value} />
+            </div>
           ))}
         </div>
       </div>
 
-      {/* Font size */}
-      <div className="mb-4">
-        <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+      {/* Font size with preview */}
+      <div>
+        <h3 className="mb-3 text-sm font-semibold text-gray-700 dark:text-gray-300">
+          <Type size={14} className="mr-1 inline text-blue-500" />
           Font Size
-        </label>
-        <div className="flex rounded-lg border border-gray-200 bg-gray-50 p-1 dark:border-gray-700 dark:bg-gray-900">
-          {fontSizes.map(({ value, label }) => (
+        </h3>
+        <div className="grid grid-cols-3 gap-3">
+          {fontSizes.map(({ value, label, preview }) => (
             <button
               key={value}
               type="button"
               onClick={() => setFontSize(value)}
-              className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-all ${
+              className={`group flex flex-col items-center gap-2 rounded-lg border-2 p-4 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
                 settings.fontSize === value
-                  ? "bg-white shadow dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-                  : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+                  ? "border-indigo-500 bg-indigo-50 dark:border-indigo-400 dark:bg-indigo-950/40"
+                  : "border-gray-200 bg-white hover:border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:hover:border-gray-600"
               }`}
-              aria-pressed={settings.fontSize === value}
             >
-              {label}
+              <span
+                className={`font-medium transition-colors ${
+                  settings.fontSize === value ? "text-indigo-700 dark:text-indigo-300" : "text-gray-700 dark:text-gray-300"
+                }`}
+                style={{ fontSize: value === "sm" ? "12px" : value === "md" ? "14px" : "16px" }}
+              >
+                {preview}
+              </span>
+              <span className="text-xs text-gray-500 dark:text-gray-400">{label}</span>
             </button>
           ))}
         </div>
@@ -257,26 +396,24 @@ function EditorSection() {
   ];
 
   return (
-    <section className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
-      <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-gray-100">
-        <Edit3 size={18} className="text-blue-500" />
-        Editor
-      </h2>
-
-      {/* Editor mode */}
-      <div className="mb-6">
-        <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+    <section className="space-y-6">
+      {/* Editor mode with mini preview */}
+      <div>
+        <h3 className="mb-3 text-sm font-semibold text-gray-700 dark:text-gray-300">
+          <Edit3 size={14} className="mr-1 inline text-blue-500" />
           Default editor mode
-        </label>
+        </h3>
         <div className="grid grid-cols-3 gap-3">
           {editorOptions.map(({ value, icon, label }) => (
-            <RadioCard
-              key={value}
-              selected={settings.editorMode === value}
-              icon={icon}
-              label={label}
-              onClick={() => setEditorMode(value)}
-            />
+            <div key={value} className="space-y-2">
+              <RadioCard
+                selected={settings.editorMode === value}
+                icon={icon}
+                label={label}
+                onClick={() => setEditorMode(value)}
+              />
+              <EditorPreview mode={value} />
+            </div>
           ))}
         </div>
       </div>
@@ -291,21 +428,21 @@ function EditorSection() {
 
       {/* Tab size */}
       <div>
-        <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+        <h3 className="mb-3 text-sm font-semibold text-gray-700 dark:text-gray-300">
+          <Type size={14} className="mr-1 inline text-blue-500" />
           Tab size
-        </label>
+        </h3>
         <div className="flex gap-2">
           {([2, 4] as const).map((size) => (
             <button
               key={size}
               type="button"
               onClick={() => setTabSize(size)}
-              className={`rounded-lg border px-4 py-2 text-sm font-medium transition-all ${
+              className={`rounded-lg border px-4 py-2 text-sm font-medium font-mono transition-all ${
                 settings.tabSize === size
                   ? "border-indigo-500 bg-indigo-50 text-indigo-700 dark:border-indigo-400 dark:bg-indigo-950/40 dark:text-indigo-300"
                   : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-750"
               }`}
-              aria-pressed={settings.tabSize === size}
             >
               {size} spaces
             </button>
@@ -320,12 +457,7 @@ function DisplaySection() {
   const { settings, toggleShowToc, toggleShowBreadcrumbs } = useSettings();
 
   return (
-    <section className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
-      <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-gray-100">
-        <List size={18} className="text-emerald-500" />
-        Display
-      </h2>
-
+    <section className="space-y-6">
       <ToggleSwitch
         checked={settings.showToc}
         onChange={toggleShowToc}
@@ -339,20 +471,29 @@ function DisplaySection() {
         label="Show breadcrumbs"
         description="Display the page hierarchy in the header"
       />
+
+      {/* Live preview */}
+      <div>
+        <h3 className="mb-3 text-sm font-semibold text-gray-700 dark:text-gray-300">
+          Live Preview
+        </h3>
+        <DisplayTogglePreview showToc={settings.showToc} showBreadcrumbs={settings.showBreadcrumbs} />
+      </div>
     </section>
   );
 }
 
 function DataSection() {
-  const { resetAll } = useSettings();
-  const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const { resetAll, clearConfig } = useSettings();
+  const [showClearConfigConfirm, setShowClearConfigConfirm] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [cleared, setCleared] = useState(false);
   const [reset, setReset] = useState(false);
 
-  const handleClear = () => {
+  const handleClearConfig = () => {
     try {
-      localStorage.removeItem("wiki-settings");
+      localStorage.removeItem("wiki-config");
+      clearConfig();
       setCleared(true);
       setTimeout(() => setCleared(false), 3000);
     } catch {
@@ -377,14 +518,14 @@ function DataSection() {
         <div className="flex items-center justify-between rounded-lg border border-gray-200 p-4 dark:border-gray-700">
           <div>
             <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-              Clear preferences
+              Clear API keys & config
             </p>
             <p className="text-xs text-gray-500 dark:text-gray-400">
-              Remove all stored settings from localStorage
+              Remove all stored API keys and configuration values
             </p>
           </div>
           <button
-            onClick={() => setShowClearConfirm(true)}
+            onClick={() => setShowClearConfigConfirm(true)}
             className="flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
           >
             {cleared ? (
@@ -420,12 +561,12 @@ function DataSection() {
       </div>
 
       <ConfirmDialog
-        open={showClearConfirm}
-        title="Clear preferences?"
-        description="This will remove all your stored settings from localStorage. You will need to reconfigure your preferences."
+        open={showClearConfigConfirm}
+        title="Clear configuration?"
+        description="This will remove all stored API keys and configuration from localStorage. You will need to reconfigure your integrations."
         confirmLabel="Clear"
-        onConfirm={handleClear}
-        onCancel={() => setShowClearConfirm(false)}
+        onConfirm={handleClearConfig}
+        onCancel={() => setShowClearConfigConfirm(false)}
       />
 
       <ConfirmDialog
@@ -441,11 +582,58 @@ function DataSection() {
   );
 }
 
+function AboutSection() {
+  return (
+    <section className="space-y-6">
+      <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
+        <div className="flex items-center gap-4">
+          <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-500/20">
+            <Type size={28} />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Wiki</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Version 0.1.0 — Alpha
+            </p>
+          </div>
+        </div>
+        <div className="mt-6 space-y-3 border-t border-gray-200 pt-4 dark:border-gray-700">
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-500 dark:text-gray-400">Built with</span>
+            <span className="font-medium text-gray-900 dark:text-gray-100">React + Tauri 2 + Rust</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-500 dark:text-gray-400">Styling</span>
+            <span className="font-medium text-gray-900 dark:text-gray-100">Tailwind CSS</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-500 dark:text-gray-400">Routing</span>
+            <span className="font-medium text-gray-900 dark:text-gray-100">React Router</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-500 dark:text-gray-400">Query</span>
+            <span className="font-medium text-gray-900 dark:text-gray-100">TanStack Query</span>
+          </div>
+        </div>
+        <p className="mt-4 text-xs text-gray-400 dark:text-gray-500">
+          A beautiful, fast local wiki powered by a Rust backend.
+          Manage your vaults, configure API integrations, and stay organized.
+        </p>
+      </div>
+    </section>
+  );
+}
+
 /* ── Page ──────────────────────────────────────────────────────────── */
 
 export function Settings(): React.ReactElement {
+  const [activeTab, setActiveTab] = useState<TabId>("general");
+
+  const activeTabDef = TABS.find((t) => t.id === activeTab)!;
+
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
+    <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
+      {/* Header */}
       <header className="mb-8">
         <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100">
           Settings
@@ -455,11 +643,79 @@ export function Settings(): React.ReactElement {
         </p>
       </header>
 
-      <div className="flex flex-col gap-6">
-        <AppearanceSection />
-        <EditorSection />
-        <DisplaySection />
-        <DataSection />
+      {/* Tab navigation */}
+      <nav className="mb-6" role="tablist" aria-label="Settings sections">
+        <div className="flex overflow-x-auto border-b border-gray-200 dark:border-gray-700">
+          {TABS.map((tab) => (
+            <button
+              key={tab.id}
+              role="tab"
+              aria-selected={activeTab === tab.id}
+              aria-controls={`panel-${tab.id}`}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-2 whitespace-nowrap border-b-2 px-4 py-3 text-sm font-medium transition-colors ${
+                activeTab === tab.id
+                  ? "border-indigo-500 text-indigo-600 dark:border-indigo-400 dark:text-indigo-400"
+                  : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400 dark:hover:border-gray-600 dark:hover:text-gray-300"
+              }`}
+            >
+              <tab.icon size={16} />
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </nav>
+
+      {/* Tab content */}
+      <div role="tabpanel" id={`panel-${activeTab}`}>
+        {activeTab === "general" && (
+          <div className="space-y-6">
+            <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
+              <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-gray-100">
+                <Palette size={18} className="text-indigo-500" />
+                Appearance
+              </h2>
+              <AppearanceSection />
+            </div>
+            <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
+              <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-gray-100">
+                <Edit3 size={18} className="text-blue-500" />
+                Editor
+              </h2>
+              <EditorSection />
+            </div>
+            <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
+              <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-gray-100">
+                <List size={18} className="text-emerald-500" />
+                Display
+              </h2>
+              <DisplaySection />
+            </div>
+            <DataSection />
+          </div>
+        )}
+
+        {activeTab === "vaults" && (
+          <div className="space-y-6">
+            <VaultManager />
+          </div>
+        )}
+
+        {activeTab === "api-keys" && (
+          <div className="space-y-6">
+            <ApiKeyManager />
+          </div>
+        )}
+
+        {activeTab === "system" && (
+          <div className="space-y-6">
+            <SystemStatus />
+          </div>
+        )}
+
+        {activeTab === "about" && (
+          <AboutSection />
+        )}
       </div>
     </div>
   );
