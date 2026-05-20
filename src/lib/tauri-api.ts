@@ -33,6 +33,51 @@ export interface AssetSummary {
   status: string;
 }
 
+/** Full asset record with chunks, metadata, and processing log. */
+export interface AssetRecord {
+  id: string;
+  filename: string;
+  type: string;
+  status: string;
+  mimeType: string;
+  fileSize: number;
+  width?: number;
+  height?: number;
+  duration?: number;
+  originalFilename: string;
+  sourceUrl?: string;
+  ingestDate: string;
+  modified: string;
+  chunks: AssetChunk[];
+  metadata: Record<string, unknown>;
+  processingLog: ProcessingEvent[];
+}
+
+/** A single text chunk extracted during asset processing. */
+export interface AssetChunk {
+  id: string;
+  text: string;
+  index: number;
+}
+
+/** An event in the asset processing pipeline. */
+export interface ProcessingEvent {
+  id: string;
+  stage: string;
+  status: string;
+  timestamp: string;
+  details?: string;
+}
+
+/** Progress info for a file being ingested. */
+export interface IngestProgress {
+  fileId: string;
+  filename: string;
+  status: 'pending' | 'uploading' | 'processing' | 'complete' | 'failed';
+  progress: number;
+  error?: string;
+}
+
 /** Information about the wiki vault. */
 export interface VaultInfo {
   /** Absolute path to the vault directory. */
@@ -140,4 +185,68 @@ export function getCuratorStatus(): Promise<CuratorStatus> {
  */
 export function enqueueCurator(assetId: string): Promise<void> {
   return invoke("enqueue_curator", { assetId });
+}
+
+// ---------------------------------------------------------------------------
+// Asset detail / management commands
+// ---------------------------------------------------------------------------
+
+/**
+ * Get the full asset record including chunks, metadata, and processing log.
+ * @param assetId — The asset identifier.
+ * @returns A full `AssetRecord`.
+ */
+export function getAssetDetail(assetId: string): Promise<AssetRecord> {
+  return invoke("get_asset_detail", { assetId });
+}
+
+/**
+ * Delete an asset from the vault.
+ * @param assetId — The asset identifier to delete.
+ */
+export function deleteAsset(assetId: string): Promise<void> {
+  return invoke("delete_asset", { assetId });
+}
+
+/**
+ * Re-process an already ingested asset.
+ * @param assetId — The asset identifier to re-process.
+ */
+export function reprocessAsset(assetId: string): Promise<void> {
+  return invoke("reprocess_asset", { assetId });
+}
+
+/**
+ * Enqueue an asset for the curator (organise).
+ * @param assetId — The asset identifier to enqueue.
+ */
+export function organizeAsset(assetId: string): Promise<void> {
+  return invoke("organize_asset", { assetId });
+}
+
+/**
+ * Get text chunks for an asset, with pagination.
+ * @param assetId — The asset identifier.
+ * @param page — Page number (1-based).
+ * @param pageSize — Number of chunks per page.
+ */
+export function getAssetChunks(
+  assetId: string,
+  page?: number,
+  pageSize?: number
+): Promise<{ chunks: AssetChunk[]; total: number; page: number }> {
+  return invoke("get_asset_chunks", {
+    assetId,
+    page: page ?? 1,
+    pageSize: pageSize ?? 20,
+  });
+}
+
+/**
+ * Get processing log events for an asset.
+ * @param assetId — The asset identifier.
+ * @returns Array of `ProcessingEvent`.
+ */
+export function getProcessingLog(assetId: string): Promise<ProcessingEvent[]> {
+  return invoke("get_processing_log", { assetId });
 }

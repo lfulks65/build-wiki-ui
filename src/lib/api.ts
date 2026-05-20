@@ -36,6 +36,10 @@ export function isTauri(): boolean {
 export type {
   PageSummary,
   AssetSummary,
+  AssetRecord,
+  AssetChunk,
+  ProcessingEvent,
+  IngestProgress,
   VaultInfo,
   SearchResult,
   CuratorStatus,
@@ -54,6 +58,12 @@ import {
   listAssets as tauriListAssets,
   getCuratorStatus as tauriGetCuratorStatus,
   enqueueCurator as tauriEnqueueCurator,
+  getAssetDetail as tauriGetAssetDetail,
+  deleteAsset as tauriDeleteAsset,
+  reprocessAsset as tauriReprocessAsset,
+  organizeAsset as tauriOrganizeAsset,
+  getAssetChunks as tauriGetAssetChunks,
+  getProcessingLog as tauriGetProcessingLog,
 } from "./tauri-api";
 
 import {
@@ -65,6 +75,12 @@ import {
   listAssets as mockListAssets,
   getCuratorStatus as mockGetCuratorStatus,
   enqueueCurator as mockEnqueueCurator,
+  getAssetDetail as mockGetAssetDetail,
+  deleteAsset as mockDeleteAsset,
+  reprocessAsset as mockReprocessAsset,
+  organizeAsset as mockOrganizeAsset,
+  getAssetChunks as mockGetAssetChunks,
+  getProcessingLog as mockGetProcessingLog,
 } from "./mock-api";
 
 /** `true` in dev/browser mode → use mock functions. */
@@ -86,3 +102,16 @@ export const listAssets = _useMock ? mockListAssets : tauriListAssets;
 export const getCuratorStatus = _useMock ? mockGetCuratorStatus : tauriGetCuratorStatus;
 /** Enqueue an asset for the curator. */
 export const enqueueCurator = _useMock ? mockEnqueueCurator : tauriEnqueueCurator;
+
+/** Get full asset detail record. */
+export const getAssetDetail = _useMock ? mockGetAssetDetail : tauriGetAssetDetail;
+/** Delete an asset. */
+export const deleteAsset = _useMock ? mockDeleteAsset : tauriDeleteAsset;
+/** Re-process an asset. */
+export const reprocessAsset = _useMock ? mockReprocessAsset : tauriReprocessAsset;
+/** Organize (enqueue curator) an asset. */
+export const organizeAsset = _useMock ? mockOrganizeAsset : tauriOrganizeAsset;
+/** Get paginated text chunks for an asset. */
+export const getAssetChunks = _useMock ? mockGetAssetChunks : tauriGetAssetChunks;
+/** Get processing log for an asset. */
+export const getProcessingLog = _useMock ? mockGetProcessingLog : tauriGetProcessingLog;
