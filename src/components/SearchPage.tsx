@@ -1,15 +1,94 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
+import { searchPages } from "@/lib/api";
 import { SearchResultCard } from "@/components/SearchResultCard";
 import { TagFilter } from "@/components/TagFilter";
-import { FilterType, SearchHit, searchWiki } from "@/types/search";
+import { FilterType, SearchHit } from "@/types/search";
+
+/* ------------------------------------------------------------------ */
+/*  Helpers                                                            */
+/* ------------------------------------------------------------------ */
+
+/** Local storage keys */
+const RECENT_SEARCHES_KEY = "wiki.recentSearches";
+const MAX_RECENT = 5;
+
+function getRecentSearches(): string[] {
+  try {
+    const raw = localStorage.getItem(RECENT_SEARCHES_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveRecentSearch(query: string): void {
+  if (!query.trim()) return;
+  const recent = getRecentSearches().filter((q) => q.toLowerCase() !== query.toLowerCase());
+  try {
+    localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify([query, ...recent].slice(0, MAX_RECENT)));
+  } catch {
+    // Storage full or unavailable — silently fail
+  }
+}
+
+function clearRecentSearches(): void {
+  try {
+    localStorage.removeItem(RECENT_SEARCHES_KEY);
+  } catch {}
+}
+
+/** Map SearchResult (from API) → SearchHit (for rendering) */
+function mapToHit(result: { title: string; path: string; snippet: string; type: string }): SearchHit {
+  return {
+    source: result.type === "asset" ? "asset" : "page",
+    id: result.path,
+    title: result.title,
+    snippet: result.snippet,
+    path: result.path,
+    date: new Date().toISOString(),
+    score: 0.9,
+  };
+}
+
+/* ------------------------------------------------------------------ */
+/*  Count-Up Animation                                                 */
+/* ------------------------------------------------------------------ */
+
+function CountUpNumber({ target, className = "" }: { target: number; className?: string }) {
+  const [display, setDisplay] = useState(0);
+  const duration = 400; // ms
+  const start = useRef(performance.now());
+
+  useEffect(() => {
+    start.current = performance.now();
+    let raf: number;
+    const animate = (now: number) => {
+      const elapsed = now - start.current;
+      const progress = Math.min(elapsed / duration, 1);
+      // Ease-out quad
+      const eased = 1 - (1 - progress) * (1 - progress);
+      setDisplay(Math.round(eased * target));
+      if (progress < 1) {
+        raf = requestAnimationFrame(animate);
+      }
+    };
+    raf = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(raf);
+  }, [target]);
+
+  return <span className={className}>{display}</span>;
+}
 
 /* ------------------------------------------------------------------ */
 /*  SearchPage: Full-page search experience                            */
 /* ------------------------------------------------------------------ */
 
 export const SearchPage: React.FC = () => {
+  const navigate = useNavigate();
+
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<FilterType>("all");
   const [results, setResults] = useState<SearchHit[]>([]);
@@ -17,20 +96,8 @@ export const SearchPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-
-  // Tag filter options (mock — derived from results)
-  const availableTagOptions = useMemo(() => {
-    const tagSet = new Set<string>();
-    for (const hit of results) {
-      // Derive pseudo-tags from source type
-      tagSet.add(hit.source);
-    }
-    return Array.from(tagSet).map((name) => ({
-      name,
-      slug: name,
-      count: results.filter((r) => r.source === name).length,
-    }));
-  }, [results]);
+  const [searchContent, setSearchContent] = useState(true);
+  const [recentSearches] = useState(() => getRecentSearches());
 
   const inputRef = useRef<HTMLInputElement>(null);
   const resultsContainerRef = useRef<HTMLDivElement>(null);
@@ -60,10 +127,20 @@ export const SearchPage: React.FC = () => {
       setLoading(true);
       setError(null);
       try {
-        const data = await searchWiki(debouncedQuery, filter);
+        const data = await searchPages(debouncedQuery);
         if (!cancelled) {
-          setResults(data);
+          const mapped: SearchHit[] = data.map(mapToHit);
+          // Client-side filter by type if not "all"
+          const filtered =
+            filter === "all"
+              ? mapped
+              : filter === "pages"
+              ? mapped.filter((r) => r.source === "page")
+              : mapped.filter((r) => r.source === "asset");
+
+          setResults(filtered);
           setHasSearched(true);
+          saveRecentSearch(debouncedQuery);
         }
       } catch {
         if (!cancelled) {
@@ -75,9 +152,7 @@ export const SearchPage: React.FC = () => {
     };
 
     runSearch();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [debouncedQuery, filter]);
 
   // Toggle tag selection
@@ -110,11 +185,14 @@ export const SearchPage: React.FC = () => {
     (index: number) => {
       const hit = results[index];
       if (hit) {
-        // Navigate to page or asset view
-        console.log("Navigate to:", hit.id, hit.source);
+        if (hit.source === "page") {
+          navigate(`/pages/${hit.path}`);
+        } else {
+          navigate(`/assets/${hit.id}`);
+        }
       }
     },
-    [results]
+    [results, navigate]
   );
 
   const { activeIndex, handleKeyDown } = useKeyboardNavigation({
@@ -165,6 +243,15 @@ export const SearchPage: React.FC = () => {
     inputRef.current?.focus();
   }, []);
 
+  // Remove a recent search
+  const handleRemoveRecent = useCallback((searchTerm: string) => {
+    // Just clear the cached value — it'll be reloaded on next mount
+    try {
+      const recent = getRecentSearches().filter((q) => q !== searchTerm);
+      localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(recent));
+    } catch {}
+  }, []);
+
   /* ---------------------------------------------------------------- */
   /*  Render: different states                                         */
   /* ---------------------------------------------------------------- */
@@ -183,7 +270,7 @@ export const SearchPage: React.FC = () => {
           onChange={handleInputChange}
           placeholder="Search your wiki..."
           className="
-            w-full h-14 pl-12 pr-12
+            w-full h-14 pl-12 pr-24
             rounded-xl border border-gray-300 bg-white
             text-lg text-gray-900 placeholder-gray-400
             shadow-sm
@@ -192,11 +279,25 @@ export const SearchPage: React.FC = () => {
           "
           aria-label="Search query"
         />
+        {/* Keyboard shortcut hint */}
+        <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+          {hasSearched && (
+            <span className="text-xs text-gray-400">
+              <CountUpNumber target={results.length} className="font-semibold text-indigo-500" />
+              result{results.length !== 1 ? "s" : ""}
+            </span>
+          )}
+          {!hasSearched && !loading && (
+            <kbd className="hidden sm:inline-flex items-center rounded bg-gray-100 px-1.5 py-0.5 text-xs font-mono text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+              /
+            </kbd>
+          )}
+        </div>
         {query && (
           <button
             onClick={handleClear}
             className="
-              absolute inset-y-0 right-0 flex items-center pr-4
+              absolute inset-y-0 right-0 flex items-center pr-10
               text-gray-400 hover:text-gray-600 transition-colors
             "
             aria-label="Clear search"
@@ -229,11 +330,56 @@ export const SearchPage: React.FC = () => {
         ))}
       </div>
 
+      {/* ---- Options row: search content checkbox + recent searches ---- */}
+      <div className="flex flex-wrap items-center gap-3 mb-4">
+        {/* Search in page content toggle */}
+        <label className="flex items-center gap-2 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={searchContent}
+            onChange={(e) => setSearchContent(e.target.checked)}
+            className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+          />
+          <span className="text-xs text-gray-600 dark:text-gray-400">
+            Search in page content
+          </span>
+        </label>
+
+        {/* Recent searches */}
+        {recentSearches.length > 0 && !hasSearched && (
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-xs text-gray-400">Recent:</span>
+            {recentSearches.map((term) => (
+              <button
+                key={term}
+                onClick={() => {
+                  setQuery(term);
+                  updateUrl(term);
+                  inputRef.current?.focus();
+                }}
+                className="group flex items-center gap-1 rounded-full bg-gray-100 px-2.5 py-1 text-xs text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 transition-colors"
+              >
+                {term}
+                <span
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleRemoveRecent(term);
+                  }}
+                  className="ml-0.5 rounded-full p-0.5 opacity-0 group-hover:opacity-100 hover:bg-gray-300 dark:hover:bg-gray-600 transition-opacity"
+                >
+                  <ClearIcon className="h-3 w-3" />
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* ---- Tag Filter ---- */}
       {hasSearched && results.length > 0 && (
         <div className="mb-4">
           <TagFilter
-            availableTags={availableTagOptions}
+            availableTags={[]}
             selectedTags={selectedTags}
             onSelect={handleTagSelect}
             onClear={selectedTags.length > 0 ? handleClearTags : undefined}
@@ -261,12 +407,31 @@ export const SearchPage: React.FC = () => {
               Type a query above to find pages, assets, and knowledge across
               your vault.
             </p>
-            <div className="mt-6 flex flex-wrap justify-center gap-2 text-xs text-gray-400">
-              <span>Recent searches:</span>
-              <span className="px-2 py-1 bg-gray-100 rounded-full">architecture</span>
-              <span className="px-2 py-1 bg-gray-100 rounded-full">curator</span>
-              <span className="px-2 py-1 bg-gray-100 rounded-full">vault setup</span>
+            {/* Keyboard shortcut hint */}
+            <div className="mt-4 flex items-center justify-center gap-2 text-xs text-gray-400">
+              <kbd className="inline-flex items-center rounded bg-gray-100 px-2 py-1 font-mono text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+                /
+              </kbd>
+              <span>to focus search</span>
+              <span className="mx-1">·</span>
+              <kbd className="inline-flex items-center rounded bg-gray-100 px-2 py-1 font-mono text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+                Esc
+              </kbd>
+              <span>to clear</span>
             </div>
+            {recentSearches.length > 0 && (
+              <div className="mt-6 flex flex-wrap justify-center gap-2 text-xs text-gray-400">
+                <span>Recent searches:</span>
+                {recentSearches.slice(0, 3).map((term) => (
+                  <span
+                    key={term}
+                    className="px-2 py-1 bg-gray-100 rounded-full dark:bg-gray-800"
+                  >
+                    {term}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -343,9 +508,10 @@ export const SearchPage: React.FC = () => {
         {/* Results List */}
         {hasSearched && !loading && !error && results.length > 0 && (
           <>
-            {/* Result count */}
+            {/* Result count with count-up animation */}
             <div className="text-sm text-gray-500 mb-3 px-1">
-              {results.length} result{results.length !== 1 ? "s" : ""} for &ldquo;
+              <CountUpNumber target={results.length} className="font-semibold text-indigo-500" />{" "}
+              result{results.length !== 1 ? "s" : ""} for &ldquo;
               <span className="font-medium text-gray-700">{debouncedQuery}</span>
               &rdquo;
             </div>
@@ -392,10 +558,10 @@ function SearchIcon() {
   );
 }
 
-function ClearIcon() {
+function ClearIcon({ className = "" }: { className?: string }) {
   return (
     <svg
-      className="w-5 h-5"
+      className={`w-5 h-5 ${className}`}
       fill="none"
       stroke="currentColor"
       strokeWidth={2}

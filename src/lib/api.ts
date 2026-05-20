@@ -39,6 +39,7 @@ export type {
   VaultInfo,
   SearchResult,
   CuratorStatus,
+  BacklinkEntry,
 } from "./tauri-api";
 
 // ---------------------------------------------------------------------------
@@ -50,10 +51,12 @@ import {
   listPages as tauriListPages,
   readPage as tauriReadPage,
   writePage as tauriWritePage,
+  deletePage as tauriDeletePage,
   searchPages as tauriSearchPages,
   listAssets as tauriListAssets,
   getCuratorStatus as tauriGetCuratorStatus,
   enqueueCurator as tauriEnqueueCurator,
+  pageBacklinks as tauriPageBacklinks,
 } from "./tauri-api";
 
 import {
@@ -61,10 +64,12 @@ import {
   listPages as mockListPages,
   readPage as mockReadPage,
   writePage as mockWritePage,
+  deletePage as mockDeletePage,
   searchPages as mockSearchPages,
   listAssets as mockListAssets,
   getCuratorStatus as mockGetCuratorStatus,
   enqueueCurator as mockEnqueueCurator,
+  pageBacklinks as mockPageBacklinks,
 } from "./mock-api";
 
 /** `true` in dev/browser mode → use mock functions. */
@@ -78,6 +83,8 @@ export const listPages = _useMock ? mockListPages : tauriListPages;
 export const readPage = _useMock ? mockReadPage : tauriReadPage;
 /** Write a page by path. */
 export const writePage = _useMock ? mockWritePage : tauriWritePage;
+/** Delete a page by path. */
+export const deletePage = _useMock ? mockDeletePage : tauriDeletePage;
 /** Search wiki pages. */
 export const searchPages = _useMock ? mockSearchPages : tauriSearchPages;
 /** List all assets. */
@@ -86,3 +93,5 @@ export const listAssets = _useMock ? mockListAssets : tauriListAssets;
 export const getCuratorStatus = _useMock ? mockGetCuratorStatus : tauriGetCuratorStatus;
 /** Enqueue an asset for the curator. */
 export const enqueueCurator = _useMock ? mockEnqueueCurator : tauriEnqueueCurator;
+/** Get backlinks for a page. */
+export const pageBacklinks = _useMock ? mockPageBacklinks : tauriPageBacklinks;

@@ -8,6 +8,9 @@ import {
   AlertCircle,
   RefreshCw,
   FileText,
+  ExternalLink,
+  Edit2,
+  MoreVertical,
 } from 'lucide-react';
 import { PageListItem } from './PageListItem';
 import { TagFilter } from './TagFilter';
@@ -115,7 +118,7 @@ export function PageList({
   const handleNavigate = useCallback(
     (slug: string) => {
       if (onNavigate) {
-        onNavigate(slug);
+        onNavigate(`/pages/${slug}`);
       }
     },
     [onNavigate]
@@ -130,12 +133,30 @@ export function PageList({
     [onNavigate]
   );
 
+  const handleCopyLink = useCallback(
+    (slug: string) => {
+      if (onNavigate) {
+        const link = `${window.location.origin}/pages/${slug}`;
+        navigator.clipboard.writeText(link).catch(() => {});
+      }
+    },
+    [onNavigate]
+  );
+
   // Loading state
   if (loading) {
     return (
-      <div className="space-y-3">
+      <div className="space-y-4">
+        {/* Header skeleton */}
+        <div className="flex items-center justify-between">
+          <div className="space-y-2">
+            <Skeleton variant="text" className="h-7 w-32" />
+            <Skeleton variant="text" className="h-4 w-48" />
+          </div>
+          <Skeleton variant="text" className="h-8 w-24 rounded-lg" />
+        </div>
         {Array.from({ length: 5 }).map((_, i) => (
-          <Skeleton key={i} variant="list" className="h-20" />
+          <Skeleton key={i} variant="list" className="h-24" />
         ))}
       </div>
     );
@@ -189,9 +210,45 @@ export function PageList({
     );
   }
 
-  // Page list with controls
+  // Get the most recently modified page for "Last updated" subtitle
+  const lastUpdatedPage = [...pages]
+    .sort((a, b) => new Date(b.modified).getTime() - new Date(a.modified).getTime())
+    .at(0);
+
   return (
     <div className="space-y-4">
+      {/* Header with page count badge */}
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-bold tracking-tight text-gray-900 dark:text-gray-100">
+              Pages
+            </h2>
+            <span className="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 text-xs font-medium rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300">
+              {pages.length}
+            </span>
+          </div>
+          {lastUpdatedPage && (
+            <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+              Last updated: {new Date(lastUpdatedPage.modified).toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+              })}
+            </p>
+          )}
+        </div>
+
+        {/* Create button */}
+        <button
+          onClick={onCreatePage}
+          className="flex items-center gap-1.5 rounded-md bg-indigo-600 px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-indigo-700 active:bg-indigo-800"
+        >
+          <Plus className="h-3.5 w-3.5" />
+          <span className="hidden sm:inline">New Page</span>
+        </button>
+      </div>
+
       {/* Controls bar */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         {/* Search */}
@@ -206,86 +263,74 @@ export function PageList({
           />
         </div>
 
-        {/* Sort + Create */}
-        <div className="flex items-center gap-2">
-          {/* Sort controls */}
-          <div className="relative">
-            <button
-              onClick={() => setShowSortMenu((s) => !s)}
-              className="flex items-center gap-1 rounded-md border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-700 transition-colors hover:border-gray-300 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:border-gray-600 dark:hover:bg-gray-700"
-            >
-              <ArrowUpDown className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">
-                {SORT_LABELS[sortOption]}
-              </span>
-              {sortDirection === 'asc' ? (
-                <ArrowUp className="h-3 w-3" />
-              ) : (
-                <ArrowDown className="h-3 w-3" />
-              )}
-            </button>
+        {/* Sort controls */}
+        <div className="relative">
+          <button
+            onClick={() => setShowSortMenu((s) => !s)}
+            className="flex items-center gap-1 rounded-md border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-700 transition-colors hover:border-gray-300 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:border-gray-600 dark:hover:bg-gray-700"
+          >
+            <ArrowUpDown className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">
+              {SORT_LABELS[sortOption]}
+            </span>
+            {sortDirection === 'asc' ? (
+              <ArrowUp className="h-3 w-3" />
+            ) : (
+              <ArrowDown className="h-3 w-3" />
+            )}
+          </button>
 
-            {/* Dropdown */}
-            {showSortMenu && (
-              <>
-                <div
-                  className="fixed inset-0 z-10"
-                  onClick={() => setShowSortMenu(false)}
-                />
-                <div className="absolute right-0 top-full z-20 mt-1 min-w-[180px] rounded-md border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-800">
-                  {(Object.keys(SORT_LABELS) as SortOption[]).map((key) => (
-                    <button
-                      key={key}
-                      onClick={() => {
-                        setSortOption(key);
-                        setShowSortMenu(false);
-                      }}
-                      className={`flex w-full items-center justify-between px-3 py-2 text-left text-xs transition-colors hover:bg-indigo-50 dark:hover:bg-gray-700 ${
-                        sortOption === key
-                          ? 'font-semibold text-indigo-700 dark:text-indigo-300'
-                          : 'text-gray-700 dark:text-gray-300'
-                      }`}
-                    >
-                      <span>{SORT_LABELS[key]}</span>
-                      {sortOption === key && (
-                        <span className="text-indigo-500">●</span>
-                      )}
-                    </button>
-                  ))}
-                  <div className="border-t border-gray-100 dark:border-gray-700" />
+          {/* Dropdown */}
+          {showSortMenu && (
+            <>
+              <div
+                className="fixed inset-0 z-10"
+                onClick={() => setShowSortMenu(false)}
+              />
+              <div className="absolute right-0 top-full z-20 mt-1 min-w-[180px] rounded-md border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-800">
+                {(Object.keys(SORT_LABELS) as SortOption[]).map((key) => (
                   <button
-                    onClick={handleToggleSortDirection}
-                    className="flex w-full items-center gap-1.5 px-3 py-2 text-left text-xs text-gray-600 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-700"
+                    key={key}
+                    onClick={() => {
+                      setSortOption(key);
+                      setShowSortMenu(false);
+                    }}
+                    className={`flex w-full items-center justify-between px-3 py-2 text-left text-xs transition-colors hover:bg-indigo-50 dark:hover:bg-gray-700 ${
+                      sortOption === key
+                        ? 'font-semibold text-indigo-700 dark:text-indigo-300'
+                        : 'text-gray-700 dark:text-gray-300'
+                    }`}
                   >
-                    {sortDirection === 'asc' ? (
-                      <>
-                        <ArrowUp className="h-3 w-3" />
-                        Sort A → Z / Oldest first
-                      </>
-                    ) : (
-                      <>
-                        <ArrowDown className="h-3 w-3" />
-                        Sort Z → A / Newest first
-                      </>
+                    <span>{SORT_LABELS[key]}</span>
+                    {sortOption === key && (
+                      <span className="text-indigo-500">●</span>
                     )}
                   </button>
-                </div>
-              </>
-            )}
-          </div>
-
-          {/* Create button */}
-          <button
-            onClick={onCreatePage}
-            className="flex items-center gap-1.5 rounded-md bg-indigo-600 px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-indigo-700 active:bg-indigo-800"
-          >
-            <Plus className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">New Page</span>
-          </button>
+                ))}
+                <div className="border-t border-gray-100 dark:border-gray-700" />
+                <button
+                  onClick={handleToggleSortDirection}
+                  className="flex w-full items-center gap-1.5 px-3 py-2 text-left text-xs text-gray-600 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-700"
+                >
+                  {sortDirection === 'asc' ? (
+                    <>
+                      <ArrowUp className="h-3 w-3" />
+                      Sort A → Z / Oldest first
+                    </>
+                  ) : (
+                    <>
+                      <ArrowDown className="h-3 w-3" />
+                      Sort Z → A / Newest first
+                    </>
+                  )}
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
 
-      {/* Tag filter bar */}
+      {/* Tag filter chips derived from real tags */}
       {availableTags.length > 0 && (
         <TagFilter
           availableTags={availableTags}
@@ -320,11 +365,14 @@ export function PageList({
               key={page.id}
               title={page.title}
               path={page.path}
+              slug={page.slug}
               modified={page.modified}
               snippet={page.snippet}
               tags={page.tags}
-              onClick={() => handleNavigate(`/pages/${page.slug}`)}
+              onClick={() => handleNavigate(page.slug)}
+              onView={() => handleNavigate(page.slug)}
               onEdit={() => handleEdit(page.slug)}
+              onCopyLink={() => handleCopyLink(page.slug)}
             />
           ))}
         </div>

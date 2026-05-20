@@ -19,6 +19,10 @@ export interface PageSummary {
   path: string;
   /** Last-modified timestamp (ISO-8601). */
   modified: string;
+  /** Optional tags associated with the page. */
+  tags?: string[];
+  /** Optional snippet for preview display. */
+  snippet?: string;
 }
 
 /** Summary of an asset associated with the wiki. */
@@ -55,6 +59,16 @@ export interface SearchResult {
   snippet: string;
   /** Result type (`page`, `asset`, etc.). */
   type: string;
+}
+
+/** One backlink entry pointing to a target page. */
+export interface BacklinkEntry {
+  /** Source page path. */
+  sourcePath: string;
+  /** Source page title. */
+  sourceTitle: string;
+  /** Context snippet showing how the link appears. */
+  context: string;
 }
 
 /** Current status of the asset curator background job. */
@@ -94,7 +108,7 @@ export function listPages(): Promise<PageSummary[]> {
 /**
  * Read the full markdown content of a page.
  * @param path — Page path relative to the vault root.
- * @returns The raw markdown string.
+ * @returns The raw markdown string (including frontmatter).
  */
 export function readPage(path: string): Promise<string> {
   return invoke("read_page", { path });
@@ -140,4 +154,22 @@ export function getCuratorStatus(): Promise<CuratorStatus> {
  */
 export function enqueueCurator(assetId: string): Promise<void> {
   return invoke("enqueue_curator", { assetId });
+}
+
+/**
+ * Delete a wiki page by path.
+ * @param path — Page path relative to the vault root.
+ * @returns Void on success.
+ */
+export function deletePage(path: string): Promise<void> {
+  return invoke("delete_page", { path });
+}
+
+/**
+ * Get backlinks for a page — pages that link to the target.
+ * @param path — Target page path.
+ * @returns Array of `BacklinkEntry` objects.
+ */
+export function pageBacklinks(path: string): Promise<BacklinkEntry[]> {
+  return invoke("page_backlinks", { path });
 }
